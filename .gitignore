@@ -1,0 +1,15 @@
+*.o
+*.exe
+a.out
+vault
+*.bin
+*.a
+*.so
+*.dll
+*.dylib
+
+/.vscode/
+
+/include/sodium/
+
+/include/sodium.h

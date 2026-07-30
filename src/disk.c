@@ -122,7 +122,7 @@ int write_vault_data(FILE* vault_file, Data *data) {
     return 0;
 }
 
-int load_buffer(Data *buffer, FILE* vault_file) {
+int read_vault_data(Data *buffer, FILE* vault_file) {
     // seek  end of header
     if (fseek(vault_file, PRE_HEADER_SIZE + HEADER_SIZE, SEEK_SET) != 0) {
         fprintf(stderr, "Fatal Error: Failed to seek to start of the vault file.\n");

@@ -10,13 +10,12 @@
 
 typedef struct VaultContext {
     char *password;
-    Data buffer;
+    Data vault_data;
     Key *password_hash;
     VaultHeader header;
     Key *session_key;
-    Dict *dictionary;
+    Dict dictionary;
     FILE *vault_file;
-    char vault_file_dir[MAX_DIR_LENGTH]; // needed?
 } VaultContext;
 
 int open_vault(VaultContext* vault);

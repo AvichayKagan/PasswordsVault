@@ -2,10 +2,12 @@
 #include "utilities.h"
 #include "vault.h"
 
+#define DEFAULT_VAULT_PATH "vault.bin"
+#define MAX_DIR_LENGTH 1024
+
 int open_vault(VaultContext* vault) {
 
     // init the vault file
-    strcpy(vault->vault_file_dir,"vault.bin");
     load_vault(vault);
 
     // init vault header
@@ -41,8 +43,8 @@ int open_vault(VaultContext* vault) {
     randombytes_buf(vault->session_key, sizeof(Key)); // generate session key
 
 
-    // init the data buffer
-    if (load_buffer(&vault->buffer, vault->vault_file)) {
+    // init the vault_data
+    if (read_vault_data(&vault->vault_data, vault->vault_file)) {
         fprintf(stderr, "Fatal Error: failed to load data to the buffer.\n");
         fclose(vault->vault_file);
         sodium_free(vault->password_hash);
@@ -58,22 +60,22 @@ int open_vault(VaultContext* vault) {
         sodium_free(vault->password_hash);
         sodium_free(vault->password);
         sodium_free(vault->session_key);
-        sodium_free(vault->buffer.data);
+        sodium_free(vault->vault_data.data);
         sodium_free(vault->header.master_key.data);
         return -1;
     }
     // HANDSHAKE, DESTROY MASTER KEY AND PASSWORD_HASH, HAND OVER CONTROL TO SESSION KEY
-    decrypt(&vault->buffer, vault->header.master_key.data, 0);
+    decrypt(&vault->vault_data, vault->header.master_key.data, 0);
     encrypt(&vault->header.master_key, *vault->password_hash);
     sodium_memzero(vault->password_hash, sizeof(Key));
 
     // init the dictionary
-    if (!init_dict(vault, &vault->buffer)) {
+    if (init_dict(vault, &vault->vault_data)) {
         fclose(vault->vault_file);
         sodium_free(vault->password_hash);
         sodium_free(vault->password);
         sodium_free(vault->session_key);
-        sodium_free(vault->buffer.data);
+        sodium_free(vault->vault_data.data);
         sodium_free(vault->header.master_key.data);
         return -1;
     }
@@ -107,15 +109,15 @@ int init_dict(VaultContext *vault, Data *data) {
     Data password_buffer;
     char *name;
 
-    vault->dictionary->head = NULL;
-    vault->dictionary->tail = NULL;
+    vault->dictionary.head = NULL;
+    vault->dictionary.tail = NULL;
 
     for (int i = 0; i < data->len; i+=MAX_NAME_LENGTH + MAX_PASSWORD_LENGTH) {
         name = data->data + i;
         password_buffer.len = MAX_PASSWORD_LENGTH;
         password_buffer.data = name + MAX_NAME_LENGTH;
         encrypt(&password_buffer, *vault->session_key);
-        if (append_node(vault->dictionary, name, &password_buffer)) {
+        if (append_node(&vault->dictionary, name, &password_buffer)) {
             fprintf(stderr, "Fatal Error: Memory allocation failed.\n");
             return -1;
         }
@@ -131,13 +133,13 @@ void lock_vault(VaultContext* vault) {
     sodium_free(vault->password_hash);
     sodium_free(vault->password);
     sodium_free(vault->session_key);
-    sodium_free(vault->buffer.data);
+    sodium_free(vault->vault_data.data);
     sodium_free(vault->header.master_key.data);
-    empty_dict(vault->dictionary);
+    empty_dict(&vault->dictionary);
 }
 
 int load_vault(VaultContext *vault) {
-    vault->vault_file = fopen(vault->vault_file_dir, "rb+");
+    vault->vault_file = fopen(DEFAULT_VAULT_PATH, "rb+");
     if (vault->vault_file == NULL || !verify_pre_header(vault->vault_file)) return search_vault(vault);
     return 0;
 }
@@ -150,12 +152,11 @@ int create_vault(VaultContext *vault) {
     unsigned char data[crypto_aead_aes256gcm_ABYTES];
     Data empty_vault = {data, 0, 0};
 
-
     randombytes_buf(header.salt, sizeof(Salt));
     header.master_key.len = crypto_aead_aes256gcm_KEYBYTES;
     header.master_key.data = sodium_malloc(crypto_aead_aes256gcm_KEYBYTES + crypto_aead_aes256gcm_ABYTES);
 
-    vault->vault_file = fopen(vault->vault_file_dir, "wb+");
+    vault->vault_file = fopen(DEFAULT_VAULT_PATH, "wb+");
     if (vault->vault_file == NULL) {
         perror("Fatal Error: Could not create vault file.");
         return -1;
@@ -188,6 +189,7 @@ int create_vault(VaultContext *vault) {
 
     error |= write_vault_data(vault->vault_file, &empty_vault);
 
+    if (!error) printf("Created a new vault at './vaukt.bin'!\n");
     
     return error;
 }
@@ -196,6 +198,7 @@ int create_vault(VaultContext *vault) {
 int search_vault(VaultContext *vault) {
     char user_choice[2];
     int loop = 1;
+    char vault_path[MAX_DIR_LENGTH];
 
     printf("Failed to open vault file, do you want to?\n");
     printf("\t1. Point to an existing vault file.\n");
@@ -227,7 +230,7 @@ int search_vault(VaultContext *vault) {
 
     printf("Enter the directory to the your vault file:\n");
     while (1) {
-        switch (read_string(vault->vault_file_dir, MAX_DIR_LENGTH)){
+        switch (read_string(vault_path, MAX_DIR_LENGTH)){
         case -1:
             fprintf(stderr, "Error: Could no take input from the terminal.\n");
             return -1;

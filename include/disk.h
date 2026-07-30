@@ -21,7 +21,7 @@ int write_vault_header(FILE* vault_file, VaultHeader *header);
 
 int write_vault_data(FILE* vault_file, Data *data);
 
-int load_buffer(Data *buffer, FILE* vault_file);
+int read_vault_data(Data *buffer, FILE* vault_file);
 
 
 #endif /* DISK_H */

@@ -243,12 +243,57 @@ int search_vault(VaultContext *vault) {
     }
 }
 
-int list_passwords() {
+int list_passwords(VaultContext *vault) {
+    Node *curr = vault->dictionary.head;
+    int n = 0;
+    char *user_choice = sodium_malloc(MAX_NAME_LENGTH);
+
+    if (curr == NULL) {
+        printf("The vault is empty. no passwords are stored.");
+        return 0;
+    }
+
+    while (curr != NULL) {
+        printf("%d. %s", n, curr->name);
+        n++;
+        curr = curr->next;
+    }
+
+    printf("Please choose password to see (enter name):");
+    while (1) {
+        switch (read_string(user_choice, MAX_NAME_LENGTH)){
+        case -1:
+            fprintf(stderr, "Error: Could no take input from the terminal.\n");
+            return -1;
+        case 1:
+            printf("Error: Invalid input, Please try again.\n");
+            break;
+        default:
+            curr = search(&vault->dictionary, user_choice);
+            if (curr == NULL) {
+                printf("Error: Name does not exists, Please try again.\n");
+                break;
+            }
+            sodium_free(user_choice);
+            return show_password(vault, curr);
+        }
+    }
 
 }
 
-int show_password() {
+int show_password(VaultContext *vault, Node *node) {
+    if (decrypt(&node->password, vault->session_key, 0)) {
+        fprintf(stderr, "Fatal Error: Intrenal Memory corruption.\n");
+        return -1;
+    }
+    
+    printf("The password for %s is: %s. Press enter to delete this message.\n", node->name, node->password.data);
+    encrypt(&node->password, vault->session_key);
+    getchar();
+    printf("\033[1A\033[2K"); //delte the message
+    printf("The password for %s as been viewed.\n", node->name);
 
+    return 0;
 }
 
 int change_password() {
@@ -263,7 +308,53 @@ int delete_password() {
 
 }
 
-int add_password() {
+int add_password(VaultContext *vault) {
+    int loop = 1;
+    char *name = sodium_malloc(MAX_NAME_LENGTH);
+    Data password;
+    Data password_dict;
+    password.data = sodium_malloc(MAX_PASSWORD_LENGTH + crypto_aead_aes256gcm_ABYTES);
+    password_dict.data = sodium_malloc(MAX_PASSWORD_LENGTH + crypto_aead_aes256gcm_ABYTES);
+
+    printf("Please enter the name of the new service:\n");
+    while (1) {
+        switch (read_string(name, MAX_NAME_LENGTH)){
+        case -1:
+            fprintf(stderr, "Error: Could no take input from the terminal.\n");
+            return -1;
+        case 1:
+            printf("Error: name can be at max %s chars, Please try again.\n", MAX_NAME_LENGTH - 1);
+            break;
+        default:
+            loop = 0;
+        }
+    }
+
+    loop = 1;
+    printf("Please enter the password for the new service:\n");
+    while (1) {
+        switch (read_string(password.data, MAX_PASSWORD_LENGTH)){
+        case -1:
+            fprintf(stderr, "Error: Could no take input from the terminal.\n");
+            return -1;
+        case 1:
+            printf("Error: name can be at max %s chars, Please try again.\n", MAX_NAME_LENGTH - 1);
+            break;
+        default:
+            password.len = strlen(password.data) + 1;
+            loop = 0;
+        }
+    }
+
+    password_dict.len = password.len;
+    memcpy(password_dict.data, password.data, MAX_PASSWORD_LENGTH);
+    if (unlock_master_key(vault)) {
+        sodium_free(password.data);
+        sodium_free(password_dict.data);
+        sodium_free(name);
+        return -1;
+    }
+    
 
 }
 

@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
-#include "dictionary.h"
+#include "dict.hpp"
 
 
 Node *append_node(Dict *list, char *name, Data *password) {

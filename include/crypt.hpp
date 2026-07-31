@@ -19,10 +19,12 @@ typedef unsigned char Key[KEY_LEN];
 class SafeVar {
     private:
         unsigned char *ptr;
-        size_t size;
-        size_t len;
+        size_t size; // total allocated size in bytes
+        size_t len; // the size in use
     
     public:
+        SafeVar() = default;
+
         SafeVar(size_t size) {
             this->size = size + ENCRYPTION_BUFF_LEN;
             this->ptr = (unsigned char *)sodium_malloc(this->size);
@@ -79,17 +81,22 @@ class SafeVar {
             return *this;
         }
 
-        operator unsigned char*() { return this->ptr + NONCE_LEN; }
+        // operator unsigned char*() { return this->ptr + NONCE_LEN; }
 
-        operator const unsigned char*() const { return this->ptr + NONCE_LEN; }
+        // operator const unsigned char*() const { return this->ptr + NONCE_LEN; }
 
         void memzero() { sodium_memzero(this->ptr, this->size); }
 
-        void encrypt(Key key);
+        void copy_data(unsigned char& src, size_t len, bool is_encrypted) {
+            std::memcpy(this->ptr - is_encrypted*NONCE_LEN, (void *)src, len);
+            this->len = len + (!is_encrypted)*NONCE_LEN;
+        }
 
-        int decrypt(Key key, bool no_corrupt);
+        SafeVar &encrypt(Key key);
 
-        int hash(SafeVar& dest, Salt salt);
+        SafeVar &decrypt(Key key, bool no_corrupt);
+
+        void hash(Salt salt);
 };
 
-int crypto_init(void);
+void crypto_init();

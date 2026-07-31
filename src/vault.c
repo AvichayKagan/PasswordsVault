@@ -354,8 +354,8 @@ int add_password(VaultContext *vault) {
         sodium_free(name);
         return -1;
     }
-    
 
+    
 }
 
 int search_password() {

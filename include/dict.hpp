@@ -1,40 +1,48 @@
 #pragma once
 
+#include <memory>
 #include "configs.h"
-#include "encryption.h"
+#include "crypt.hpp"
 
 
 
 class Node {
     private:
-        struct Node *next;
-        struct Node *prev;
-        Data password;
+        std::unique_ptr<Node> next;
+        Node *prev;
+        SafeVar password;
         char name[MAX_NAME_LENGTH];
 
     public:
-        char* get_name() { return this->name; }
+        friend class Dict;
 
-        Data* get_password() { return &this->password; }
+        Node(SafeVar &&password, char *name) {
+            this->password = std::move(password);
+            this->next = nullptr;
+            std::strcpy(this->name, name);
+        }
 
-        void change_password(Data *new_password) {
-            this->password.data = new_password->data;
-            this->password.len = new_password->len;
-            memccpy(this->password.npub, new_password->npub);
+        char *get_name() { return this->name; }
+
+        SafeVar& get_password(Key key) { return this->password; }
+
+        void change_password(SafeVar& new_password) {
+            this->password = std::move(new_password);
         }
 };
 
 class Dict {
     private:
-        Node *head;
+        std::unique_ptr<Node> head;
         Node *tail;
     
     public:
-        Node *append_node(Dict *list, char *name, Data *password);
 
-        void delete_node(Dict *list, Node *node);
+        Dict() { this->tail = nullptr; } // head init to nullptr by default as unique pointer
 
-        Node *search(Dict *list, char *name);
+        Node *append_node(char *name, SafeVar&& password);
 
-        void empty_dict(Dict *list);
+        void delete_node(Node *node);
+
+        Node *search(char *name);
 };

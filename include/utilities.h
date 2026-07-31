@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "encryption.h"
+#include "crypt.hpp"
 
 int read_string(char *buffer, int max_size);
 

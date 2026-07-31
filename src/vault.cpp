@@ -1,86 +1,36 @@
-#include "disk.h"
 #include "utilities.h"
-#include "vault.h"
+#include "vault.hpp"
 
-#define DEFAULT_VAULT_PATH "vault.bin"
-#define MAX_DIR_LENGTH 1024
 
-int open_vault(VaultContext* vault) {
-
-    // init the vault file
-    load_vault(vault);
-
-    // init vault header
-    if (read_vault_header(vault->vault_file, &vault->header)) {
-        fclose(vault->vault_file);
-        return -1;
+void Vault::sudo(const std::function<void()>& func) { 
+    SafeVar password;
+    try {
+        // init the passwrod
+        password.hash(this->salt);
+        (this->master_key).decrypt(password.get_data(), true);
+        func();
     }
+    catch (...) {
+        (this->master_key).encrypt(password.get_data());
+        password.memzero();
+        throw;
+    }
+
+    (this->master_key).encrypt(password.get_data());
+    password.memzero();
+}
+
+void Vault::open_vault() {
+    // init vault header (salt and master key)
+    if (read_vault_header(this->vault_file, this->salt, this->master_key)) throw std::runtime_error("Failed to read the vault header.");
     
-    // init password hash, password and session key
-    vault->password_hash = sodium_malloc(sizeof(Key));
-    if (vault->password_hash == NULL) {
-        fprintf(stderr, "Fatal Error: memery allocation failed.\n");
-        fclose(vault->vault_file);
-        sodium_free(vault->header.master_key.data);
-        return -1;
-    }
-    vault->password = sodium_malloc(MAX_PASSWORD_LENGTH);
-    if (vault->password == NULL) {
-        fprintf(stderr, "Fatal Error: memery allocation failed.\n");
-        fclose(vault->vault_file);
-        sodium_free(vault->password_hash);
-        sodium_free(vault->header.master_key.data);
-        return -1;
-    }
-    vault->session_key = sodium_malloc(sizeof(Key));
-    if (vault->session_key == NULL) {
-        fclose(vault->vault_file);
-        sodium_free(vault->password_hash);
-        sodium_free(vault->password);
-        sodium_free(vault->header.master_key.data);
-        return -1;
-    }
-    randombytes_buf(vault->session_key, sizeof(Key)); // generate session key
-
-
-    // init the vault_data
-    if (read_vault_data(&vault->vault_data, vault->vault_file)) {
-        fprintf(stderr, "Fatal Error: failed to load data to the buffer.\n");
-        fclose(vault->vault_file);
-        sodium_free(vault->password_hash);
-        sodium_free(vault->password);
-        sodium_free(vault->session_key);
-        sodium_free(vault->header.master_key.data);
-        return -1;
-    }
-    
-    // unlock the master key
-    if (unlock_master_key(vault)) {
-        fclose(vault->vault_file);
-        sodium_free(vault->password_hash);
-        sodium_free(vault->password);
-        sodium_free(vault->session_key);
-        sodium_free(vault->vault_data.data);
-        sodium_free(vault->header.master_key.data);
-        return -1;
-    }
-    // HANDSHAKE, DESTROY MASTER KEY AND PASSWORD_HASH, HAND OVER CONTROL TO SESSION KEY
-    decrypt(&vault->vault_data, vault->header.master_key.data, 0);
-    encrypt(&vault->header.master_key, *vault->password_hash);
-    sodium_memzero(vault->password_hash, sizeof(Key));
+    // init session key
+    this->session_key.random(KEY_LEN);
 
     // init the dictionary
-    if (init_dict(vault, &vault->vault_data)) {
-        fclose(vault->vault_file);
-        sodium_free(vault->password_hash);
-        sodium_free(vault->password);
-        sodium_free(vault->session_key);
-        sodium_free(vault->vault_data.data);
-        sodium_free(vault->header.master_key.data);
-        return -1;
-    }
-
-    return 0;
+    (*this).sudo([&]() {
+        
+    });
 }
 
 int unlock_master_key(VaultContext *vault) {

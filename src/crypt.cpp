@@ -48,7 +48,7 @@ SafeVar& SafeVar::decrypt(Key key, bool no_corrupt) {
 
     if (error) {
         if (no_corrupt) *this = std::move(backup);
-        throw std::runtime_error("Decryption Failed: Wrong key or corrupted cipher.");
+        throw std::runtime_error("Decryption failed: Incorrect password or corrupted cipher.");
     }
 
     return *this;

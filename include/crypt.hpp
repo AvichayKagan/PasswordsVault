@@ -16,27 +16,24 @@ typedef unsigned char Salt[SALT_LEN];
 
 typedef unsigned char Key[KEY_LEN];
 
+
 class SafeVar {
     private:
-        unsigned char *ptr;
         size_t size; // total allocated size in bytes
-        size_t len; // the size in use
+        unsigned char *ptr = nullptr;
     
     public:
         SafeVar() = default;
 
-        SafeVar(size_t size) {
-            this->size = size + ENCRYPTION_BUFF_LEN;
-            this->ptr = (unsigned char *)sodium_malloc(this->size);
-            if (this->ptr == nullptr) throw std::bad_alloc();
-            this->len = 0;
+        SafeVar(unsigned char *src, size_t len, bool is_encrypted) {
+            (*this).copy_data(src, len, is_encrypted);
         }
 
-        ~SafeVar() { sodium_free(ptr); }
+        ~SafeVar() { if (ptr != nullptr) sodium_free(ptr); }
+        
 
         SafeVar(const SafeVar& other) {
             this->size = other.size;
-            this->len = other.len;
             this->ptr = (unsigned char *)sodium_malloc(other.size);
             if (this->ptr == nullptr) throw std::bad_alloc();
             std::memcpy(this->ptr, other.ptr, this->size);
@@ -49,7 +46,6 @@ class SafeVar {
             if (temp == nullptr) throw std::bad_alloc();
 
             this->size = other.size;
-            this->len = other.len;
             sodium_free(this->ptr);
             this->ptr = temp;
             std::memcpy(this->ptr, other.ptr, this->size);
@@ -60,9 +56,7 @@ class SafeVar {
         SafeVar(SafeVar&& other) noexcept {
             this->size = other.size;
             this->ptr = other.ptr;
-            this->len = other.len;
             other.size = 0;
-            other.len = 0;
             other.ptr = nullptr;
         }
 
@@ -73,25 +67,30 @@ class SafeVar {
 
             this->size = other.size;
             this->ptr = other.ptr;
-            this->len = other.len;
             other.size = 0;
-            other.len = 0;
             other.ptr = nullptr;
 
             return *this;
         }
 
-        // operator unsigned char*() { return this->ptr + NONCE_LEN; }
-
-        // operator const unsigned char*() const { return this->ptr + NONCE_LEN; }
+        void copy_data(unsigned char *src, size_t len, bool is_encrypted) {
+            this->size = len + (!is_encrypted)*ENCRYPTION_BUFF_LEN;
+            this->ptr = (unsigned char *)sodium_malloc(size);
+            if (this->ptr == nullptr) throw std::bad_alloc();
+            std::memcpy(this->ptr + (!is_encrypted)*NONCE_LEN, src, len);
+        }
 
         void memzero() { sodium_memzero(this->ptr, this->size); }
 
-        void copy_data(unsigned char& src, size_t len, bool is_encrypted) {
-            std::memcpy(this->ptr - is_encrypted*NONCE_LEN, (void *)src, len);
-            this->len = len + (!is_encrypted)*NONCE_LEN;
+        void random(size_t size) { 
+            this->size = size + ENCRYPTION_BUFF_LEN;
+            this->ptr = (unsigned char *)sodium_malloc(size);
+            if (this->ptr == nullptr) throw std::bad_alloc();
+            randombytes(this->ptr + NONCE_LEN, size);
         }
 
+        unsigned char *get_data() { return this->ptr; }
+        
         SafeVar &encrypt(Key key);
 
         SafeVar &decrypt(Key key, bool no_corrupt);

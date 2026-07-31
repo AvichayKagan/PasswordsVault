@@ -1,7 +1,8 @@
 #pragma once
 
 #include <memory>
-#include "configs.h"
+#include <cstring>
+#include "configs.hpp"
 #include "crypt.hpp"
 
 
@@ -24,7 +25,7 @@ class Node {
 
         char *get_name() { return this->name; }
 
-        SafeVar& get_password(Key key) { return this->password; }
+        SafeVar& get_password() { return this->password; }
 
         void change_password(SafeVar& new_password) {
             this->password = std::move(new_password);

@@ -17,33 +17,15 @@ class Vault {
         SafeVar master_key;
         SafeVar session_key;
         Dict dictionary;
-        FILE *vault_file;
+        DiskManager disk_mang;
     
     public:
 
-    Vault(int create) {
-        char *mode[2] = {"rb+", "wb+"};
-        vault_file = fopen(VAULT_PATH, mode[create]);
-        if (vault_file != nullptr) throw std::runtime_error("Vault file wasn't found.");
-        if (verify_pre_header(vault_file)) throw std::runtime_error("Vault header doesn't match.");
-    }
-
-    ~Vault() { 
-        fclose(vault_file);
-    }
-
-    Vault(const Vault& other) = delete;
-    Vault& operator=(const Vault& other) = delete;
-    Vault(Vault&& other) = delete;
-    Vault& operator=(Vault&& other) = delete;
+    Vault(int create) :master_key(KEY_LEN), session_key(KEY_LEN), disk_mang(VAULT_PATH, create) {}
 
     void open_vault();
 
     void lock_vault();
 
-    void sudo(const std::function<void()>& func)
+    void sudo(const std::function<void()>& func);
 };
-
-int search_vault();
-
-int load_vault();

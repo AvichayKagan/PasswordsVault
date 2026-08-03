@@ -47,8 +47,11 @@ SafeVar& SafeVar::decrypt(Key key, bool no_corrupt) {
     this->len -= AUTH_TAG_LEN; // handle the len change
 
     if (error) {
-        if (no_corrupt) *this = std::move(backup);
-        throw std::runtime_error("Decryption failed: Incorrect password or corrupted cipher.");
+        if (no_corrupt) {
+            *this = std::move(backup);
+            throw std::runtime_error("Decryption failed: Incorrect password.");
+        }
+        throw std::runtime_error("Decryption failed: corrupted cipher.");
     }
 
     return *this;

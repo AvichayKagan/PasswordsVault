@@ -4,33 +4,45 @@
 
 void Vault::sudo(const std::function<void()>& func) { 
     SafeVar password;
+
     try {
         // init the passwrod
         password.hash(this->salt);
-        (this->master_key).decrypt(password.get_data(), true);
+        (this->master_key).decrypt(password.get_ptr(), true);
         func();
     }
     catch (...) {
-        (this->master_key).encrypt(password.get_data());
+        (this->master_key).encrypt(password.get_ptr());
         password.memzero();
         throw;
     }
 
-    (this->master_key).encrypt(password.get_data());
+    (this->master_key).encrypt(password.get_ptr());
     password.memzero();
 }
 
 void Vault::open_vault() {
+    // get vault size
+    unsigned long long vault_size = get_vault_size(this->vault_file);
+    if (vault_size < 0) throw std::runtime_error("Couldn't determine vault size.");
+
+    // read vault data
+    SafeVar data(vault_size - PRE_HEADER_SIZE - HEADER_SIZE);
+    read_vault_data();
+
     // init vault header (salt and master key)
     if (read_vault_header(this->vault_file, this->salt, this->master_key)) throw std::runtime_error("Failed to read the vault header.");
     
     // init session key
     this->session_key.random(KEY_LEN);
 
-    // init the dictionary
+    // decrypt the data
     (*this).sudo([&]() {
-        
+        data.decrypt(this->master_key.get_ptr(), false);
     });
+    
+    // init vault
+
 }
 
 int unlock_master_key(VaultContext *vault) {
@@ -311,3 +323,4 @@ int add_password(VaultContext *vault) {
 int search_password() {
 
 }
+

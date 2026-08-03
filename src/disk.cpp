@@ -1,139 +1,117 @@
+#include <stdexcept>
+#include <memory>
 #include "disk.hpp"
 #include "utilities.h"
 
+#define BLOCK_SIZE 128
 
-int verify_pre_header(FILE* vault_file) {
+void DiskManager::verify_pre_header() {
     unsigned long long pre_header = 0;
     int count = 0;
     int ch;
-    while (count < PRE_HEADER_SIZE && (ch = fgetc(vault_file)) != EOF) {
+
+    // seek pre-header start
+    if (fseek(this->file, 0, SEEK_SET) != 0) throw std::runtime_error("Failed to seek the pre-header location in the vault file.");
+
+    while (count < PRE_HEADER_SIZE && (ch = fgetc(this->file)) != EOF) {
         unsigned char byte = (unsigned char)ch;
         pre_header <<= BYTE_SIZE;
         pre_header |= byte;
         count++;
     }
 
-    return (pre_header == PRE_HEADER);
+    if (pre_header != PRE_HEADER) throw std::runtime_error("Vault header doesn't match.");
 }
 
+void DiskManager::get_vault_size() {
+    if (fseek(this->file, 0, SEEK_END) != 0) throw std::runtime_error("Faield to seek to end of the vault file");
 
-int read_vault_header(FILE* vault_file, VaultHeader *header) {
-    int encrypted_key_len = crypto_aead_aes256gcm_KEYBYTES + crypto_aead_aes256gcm_ABYTES;
+    this->file_size = ftell(file);
+    if (this->file_size == -1L) throw std::runtime_error("Faield to seek to end of the vault file");
+}
+
+void DiskManager::read_vault_header(Salt salt, SafeVar &master_key) {
+    int encrypted_key_len = KEY_LEN + AUTH_TAG_LEN;
 
     // seek header start
-    if (fseek(vault_file, PRE_HEADER_SIZE, SEEK_SET) != 0) {
-        fprintf(stderr, "Fatal Error: Failed to seek to header location in the vault file.\n");
-        return -1;
-    }
+    if (fseek(this->file, PRE_HEADER_SIZE, SEEK_SET) != 0) throw std::runtime_error("Failed to seek the header location in the vault file.");
 
     // read salt
-    if (fread(header->salt, 1, crypto_pwhash_SALTBYTES, vault_file) != crypto_pwhash_SALTBYTES) {
-        fprintf(stderr, "Fatal Error: Failed to read salt from vault header.\n");
-        return -1;
-    }
+    if (fread(salt, 1, SALT_LEN, this->file) != SALT_LEN) throw std::runtime_error("Failed to read the salt from the disk.");
 
-    // read npub
-    if (fread(header->master_key.npub, 1, crypto_aead_aes256gcm_NPUBBYTES, vault_file) != crypto_aead_aes256gcm_NPUBBYTES) {
-        fprintf(stderr, "Fatal Error: Failed to read npub from vault header.\n");
-        return -1;
-    }
-
-    header->master_key.data = sodium_malloc(encrypted_key_len);
-    if (header->master_key.data == NULL) {
-        fprintf(stderr, "Fatal Error: Failed to allocate memory for the master key.\n");
-        return -1;
-    }
     // read master key (encrypted)
-    if (fread(header->master_key.data, 1, encrypted_key_len, vault_file) != encrypted_key_len) {
-        fprintf(stderr, "Fatal Error: Failed to read master key from vault header.\n");
-        sodium_free(header->master_key.data);
-        return -1;
-    }
-
-    // set the master key encrytped length
-    header->master_key.len = encrypted_key_len;
-
-    return 0;
+    if (fread(master_key.get_ptr(true), 1, encrypted_key_len, this->file) != encrypted_key_len) throw std::runtime_error("Failed to read the master key from the disk.");
 }
 
-int write_vault_header(FILE* vault_file, VaultHeader *header) {
-    int encrypted_key_len = crypto_aead_aes256gcm_KEYBYTES + crypto_aead_aes256gcm_ABYTES;
-    unsigned char pre_header[PRE_HEADER_SIZE];
-    unsigned long long pre_header_ll = PRE_HEADER;
+void DiskManager::write_vault_header(Salt salt, SafeVar &master_key) {
+    int encrypted_key_len = KEY_LEN + AUTH_TAG_LEN;
 
-    // load the pre-header to array
-    for (int i = PRE_HEADER_SIZE - 1; i >= 0; i--) {
-        pre_header[i] = (unsigned char)pre_header_ll;
-        pre_header_ll >>= BYTE_SIZE;
-    }
-
-    // seek  start
-    if (fseek(vault_file, 0, SEEK_SET) != 0) {
-        fprintf(stderr, "Fatal Error: Failed to seek to start of the vault file.\n");
-        return -1;
-    }
-
-    // write pre header
-    if (fwrite(pre_header, 1, PRE_HEADER_SIZE, vault_file) != PRE_HEADER_SIZE) {
-        fprintf(stderr, "Fatal Error: Failed to write pre header to vault.\n");
-        return -1;
-    }
+    // seek header start
+    if (fseek(this->file, PRE_HEADER_SIZE, SEEK_SET) != 0) throw std::runtime_error("Failed to seek the header location in the vault file.");
 
     // write salt
-    if (fwrite(header->salt, 1, crypto_pwhash_SALTBYTES, vault_file) != crypto_pwhash_SALTBYTES) {
-        fprintf(stderr, "Fatal Error: Failed to write salt to vault header.\n");
-        return -1;
-    }
-
-    // write npub
-    if (fwrite(header->master_key.npub, 1, crypto_aead_aes256gcm_NPUBBYTES, vault_file) != crypto_aead_aes256gcm_NPUBBYTES) {
-        fprintf(stderr, "Fatal Error: Failed to write npub to vault header.\n");
-        return -1;
-    }
+    if (fwrite(salt, 1, SALT_LEN, this->file) != SALT_LEN) throw std::runtime_error("Failed to write the salt to disk.");
 
     // write master key (encrypted)
-    if (fwrite(header->master_key.data, 1, encrypted_key_len, vault_file) != encrypted_key_len) {
-        fprintf(stderr, "Fatal Error: Failed to write master key to vault header.\n");
-        return -1;
-    }
-
-    return 0;
+    if (fwrite(master_key.get_ptr(true), 1, encrypted_key_len, this->file) != encrypted_key_len) throw std::runtime_error("Failed to write the master key to disk.");
 }
 
-int write_vault_data(FILE* vault_file, Data *data) {
+
+
+void DiskManager::read_vault_data(Dict &dict, SafeVar &master_key, SafeVar &session_key) {
+    int read_len_name = MAX_NAME_LENGTH + AUTH_TAG_LEN;
+    int read_len_pass = MAX_PASSWORD_LENGTH + AUTH_TAG_LEN;
+
     // seek  end of header
-    if (fseek(vault_file, PRE_HEADER_SIZE + HEADER_SIZE, SEEK_SET) != 0) {
-        fprintf(stderr, "Fatal Error: Failed to seek to start of the vault file.\n");
-        return -1;
+    if (fseek(this->file, PRE_HEADER_SIZE + HEADER_SIZE, SEEK_SET) != 0) throw std::runtime_error("Failed to seek the header location in the vault file.");
+
+    while (true) {
+        SafeVar name(MAX_NAME_LENGTH);
+        SafeVar password(MAX_PASSWORD_LENGTH);
+
+        // read the name
+        if (fread(name.get_ptr(true), 1, read_len_name, this->file) != read_len_name) break;
+        name.decrypt(master_key.get_ptr(false), false);
+
+        // read the password
+        if (fread(password.get_ptr(true), 1, read_len_pass, this->file) != read_len_pass) break;
+        password.decrypt(master_key.get_ptr(false), false);
+        password.encrypt(session_key.get_ptr(false));
+
+        dict.append_node(std::move(name), std::move(password));
     }
 
-    // write data npub
-    if (fwrite(data->npub, 1, crypto_aead_aes256gcm_NPUBBYTES, vault_file) != crypto_aead_aes256gcm_NPUBBYTES) {
-        fprintf(stderr, "Fatal Error: Failed to write data npub to vault.\n");
-        return -1;
-    }
-
-    // write encrypted data
-    if (fwrite(data->data, 1, data->len, vault_file) != data->len) {
-        fprintf(stderr, "Fatal Error: Failed to write data to vault.\n");
-        return -1;
-    }
-
-    return 0;
+    if (!feof(this->file)) throw std::runtime_error("Failed to read vault data.");
 }
 
-int read_vault_data(Data *buffer, FILE* vault_file) {
+void DiskManager::write_vault_data(Dict &dict, SafeVar &master_key, SafeVar &session_key) {
+    SafeVar name;
+    SafeVar password;
+    int read_len_name = MAX_NAME_LENGTH + AUTH_TAG_LEN;
+    int read_len_pass = MAX_PASSWORD_LENGTH + AUTH_TAG_LEN;
+
     // seek  end of header
-    if (fseek(vault_file, PRE_HEADER_SIZE + HEADER_SIZE, SEEK_SET) != 0) {
-        fprintf(stderr, "Fatal Error: Failed to seek to start of the vault file.\n");
-        return -1;
+    if (fseek(this->file, PRE_HEADER_SIZE + HEADER_SIZE, SEEK_SET) != 0) throw std::runtime_error("Failed to seek the header location in the vault file.");
+
+    for (Node *i = dict.get_head(); i != nullptr; i = (*i).get_next() ) {
+        name = (*i).get_name();
+        password = (*i).get_password();
+
+        // read the name
+        name.encrypt(master_key.get_ptr(false));
+        if (fwrite(name.get_ptr(true), 1, read_len_name, this->file) != read_len_name) throw std::runtime_error("Failed to write vault data.");
+
+        // read the password
+        password.decrypt(session_key.get_ptr(false), false);
+        password.encrypt(master_key.get_ptr(false));
+        if (fwrite(password.get_ptr(true), 1, read_len_pass, this->file) != read_len_pass) throw std::runtime_error("Failed to write vault data.");
     }
 
-    // read data npub
-    if (fread(buffer->npub, 1, crypto_aead_aes256gcm_NPUBBYTES, vault_file) != crypto_aead_aes256gcm_NPUBBYTES) {
-        fprintf(stderr, "Fatal Error: Failed to read data npub from vault header.\n");
-        return -1;
-    }
+    fflush(this->file);
 
-    return load_file_to_buffer(vault_file, buffer, HEADER_SIZE + PRE_HEADER_SIZE + crypto_aead_aes256gcm_NPUBBYTES);
+    (*this).cut_file_size();
+}
+
+void DiskManager::cut_file_size() {
+    return;
 }

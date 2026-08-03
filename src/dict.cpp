@@ -4,9 +4,9 @@
 #include "dict.hpp"
 
 
-Node *Dict::append_node(char *name, SafeVar&& password) {
+Node *Dict::append_node(SafeVar &&name, SafeVar&& password) {
     /* allocate new Node */
-    auto new_node = std::make_unique<Node>(std::move(password), name);
+    auto new_node = std::make_unique<Node>(std::move(password), std::move(name));
 
     /* attaching the new node to the list */
     if (this->head == nullptr) { /*if the list is empty */
@@ -45,7 +45,7 @@ Node *Dict::search(char *name) {
     Node *curr = this->head.get();
 
     /* iterate until a match is found or list ends */
-    while (curr != nullptr && strcmp(curr->name, name)) {
+    while (curr != nullptr && std::strcmp((char *)(curr->name).get_ptr(false), name)) {
         curr = curr->next.get();
     }
 

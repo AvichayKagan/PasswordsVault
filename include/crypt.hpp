@@ -25,13 +25,14 @@ class SafeVar {
     public:
         SafeVar() = default;
 
-        SafeVar(unsigned char *src, size_t len, bool is_encrypted) {
-            (*this).copy_data(src, len, is_encrypted);
-        }
+        SafeVar(size_t size) {
+            this->size = size + ENCRYPTION_BUFF_LEN;
+            this->ptr = (unsigned char *)sodium_malloc(this->size);
+            if (this->ptr == nullptr) throw std::bad_alloc();
+        };
 
         ~SafeVar() { if (ptr != nullptr) sodium_free(ptr); }
         
-
         SafeVar(const SafeVar& other) {
             this->size = other.size;
             this->ptr = (unsigned char *)sodium_malloc(other.size);
@@ -73,11 +74,12 @@ class SafeVar {
             return *this;
         }
 
-        void copy_data(unsigned char *src, size_t len, bool is_encrypted) {
+        
+        unsigned char *get_ptr(bool is_encrypted) { return (this->ptr - (is_encrypted)*NONCE_LEN); }
+
+        void get_data(unsigned char *src, size_t len, bool is_encrypted) {
             this->size = len + (!is_encrypted)*ENCRYPTION_BUFF_LEN;
-            this->ptr = (unsigned char *)sodium_malloc(size);
-            if (this->ptr == nullptr) throw std::bad_alloc();
-            std::memcpy(this->ptr + (!is_encrypted)*NONCE_LEN, src, len);
+            this->ptr = src;
         }
 
         void memzero() { sodium_memzero(this->ptr, this->size); }
@@ -89,7 +91,7 @@ class SafeVar {
             randombytes(this->ptr + NONCE_LEN, size);
         }
 
-        unsigned char *get_data() { return this->ptr; }
+        // unsigned char *get_ptr() { return this->ptr; }
         
         SafeVar &encrypt(Key key);
 

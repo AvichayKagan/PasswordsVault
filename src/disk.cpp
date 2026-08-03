@@ -1,9 +1,20 @@
 #include <stdexcept>
 #include <memory>
 #include "disk.hpp"
-#include "utilities.h"
 
 #define BLOCK_SIZE 128
+
+
+// for truncating the file on each operating system
+#ifdef _WIN32
+    #include <io.h>
+    #define TRUNCATE_FILE(fd, size) _chsize_s((fd), (size))
+    #define FILENO(fp) _fileno(fp)
+#else
+    #include <unistd.h>
+    #define TRUNCATE_FILE(fd, size) ftruncate((fd), (size))
+    #define FILENO(fp) fileno(fp)
+#endif
 
 void DiskManager::verify_pre_header() {
     unsigned long long pre_header = 0;
@@ -107,11 +118,17 @@ void DiskManager::write_vault_data(Dict &dict, SafeVar &master_key, SafeVar &ses
         if (fwrite(password.get_ptr(true), 1, read_len_pass, this->file) != read_len_pass) throw std::runtime_error("Failed to write vault data.");
     }
 
-    fflush(this->file);
+    if (fflush(this->file) != 0) throw std::runtime_error("Failed to flush vault data.");
 
     (*this).cut_file_size();
 }
 
 void DiskManager::cut_file_size() {
-    return;
+    long current_pos = ftell(file);
+    if (current_pos == -1L) throw std::runtime_error("Failed to get current file position.");
+
+    int fd = FILENO(file);
+    if (fd == -1) throw std::runtime_error("Failed to get file descriptor.");
+
+    if (TRUNCATE_FILE(fd, current_pos) != 0) throw std::runtime_error("Failed to truncate file size.");
 }

@@ -84,12 +84,7 @@ class SafeVar {
 
         void memzero() { sodium_memzero(this->ptr, this->size); }
 
-        void random(size_t size) { 
-            this->size = size + ENCRYPTION_BUFF_LEN;
-            this->ptr = (unsigned char *)sodium_malloc(size);
-            if (this->ptr == nullptr) throw std::bad_alloc();
-            randombytes(this->ptr + NONCE_LEN, size);
-        }
+        void random() { randombytes(this->ptr + NONCE_LEN, this->size - AUTH_TAG_LEN);}
 
         // unsigned char *get_ptr() { return this->ptr; }
         

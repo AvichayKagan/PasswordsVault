@@ -50,4 +50,6 @@ class Dict {
         Node *search(char *name);
 
         Node *get_head() { return (this->head).get(); }
+
+        void empty() { this->head.reset(); }
 };

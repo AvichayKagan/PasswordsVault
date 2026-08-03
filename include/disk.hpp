@@ -21,9 +21,9 @@ class DiskManager {
         void cut_file_size();
 
     public:
-        DiskManager(char *path, int create) {
+        DiskManager(const char *path, int create) {
             int pre_header;
-            char *mode[2] = {"rb+", "wb+"};
+            const char *mode[2] = {"rb+", "wb+"};
 
             file = fopen(VAULT_PATH, mode[create]);
             if (file == nullptr) {

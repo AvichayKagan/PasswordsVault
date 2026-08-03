@@ -1,7 +1,6 @@
 #pragma once
 
 
-#include <cstring>
 #include <stdio.h>
 #include <stdexcept>
 #include <functional>
@@ -18,14 +17,17 @@ class Vault {
         SafeVar session_key;
         Dict dictionary;
         DiskManager disk_mang;
+        bool is_open = false;
     
     public:
 
-    Vault(int create) :master_key(KEY_LEN), session_key(KEY_LEN), disk_mang(VAULT_PATH, create) {}
+    Vault(int create) :master_key(KEY_LEN), session_key(KEY_LEN), disk_mang(VAULT_PATH, create) {
+        this->disk_mang.read_vault_header(this->salt, this->master_key);
+    }
 
     void open_vault();
 
-    void lock_vault();
+    void lock_vault() { this->dictionary.empty(); is_open = false; };
 
     void sudo(const std::function<void()>& func);
 };

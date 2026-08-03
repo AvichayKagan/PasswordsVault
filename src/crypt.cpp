@@ -21,13 +21,11 @@ SafeVar& SafeVar::encrypt(Key key) {
 
     crypto_aead_aes256gcm_encrypt(
         this->ptr + NONCE_LEN, // write inplace the encrypted data to data
-        &dummy, // pass dummy to the ne len, we manage it manually
-        this->ptr + NONCE_LEN, this->len - NONCE_LEN, // unencrypted data and its length
+        &dummy, // pass dummy to the the len
+        this->ptr + NONCE_LEN, this->size - ENCRYPTION_BUFF_LEN, // unencrypted data and its length
         NULL, 0, NULL, 
         this->ptr, key // nounce and key
     );
-
-    this->len += AUTH_TAG_LEN; // handle the len change
 
     return *this;
 }
@@ -38,13 +36,12 @@ SafeVar& SafeVar::decrypt(Key key, bool no_corrupt) {
 
     int error = crypto_aead_aes256gcm_decrypt(
         this->ptr + NONCE_LEN, // write inplace the decrypted data to data
-        &dummy, // pass dummy to the ne len, we manage it manually
+        &dummy, // pass dummy to the the len
         NULL,
-        this->ptr + NONCE_LEN, this->len - NONCE_LEN, // encrypted data data and its length
+        this->ptr + NONCE_LEN, this->size - ENCRYPTION_BUFF_LEN, // encrypted data data and its length
         NULL, 0,
         this->ptr, key // nounce and key
     );
-    this->len -= AUTH_TAG_LEN; // handle the len change
 
     if (error) {
         if (no_corrupt) {
@@ -65,7 +62,7 @@ void SafeVar::hash(Salt salt) {
         dest.ptr,
         KEY_LEN,
         (char *)this->ptr + NONCE_LEN,
-        this->len - NONCE_LEN,
+        this->size - ENCRYPTION_BUFF_LEN,
         salt,
         crypto_pwhash_OPSLIMIT_MODERATE,
         crypto_pwhash_MEMLIMIT_MODERATE,

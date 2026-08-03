@@ -10,6 +10,10 @@ vault
 
 /.vscode/
 
+/obj/
+
+/libs/
+
 /include/sodium/
 
 /include/sodium.h

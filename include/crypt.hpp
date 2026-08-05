@@ -84,7 +84,10 @@ class SafeVar {
 
         void memzero() { sodium_memzero(this->ptr, this->size); }
 
-        void random() { randombytes(this->ptr + NONCE_LEN, this->size - AUTH_TAG_LEN);}
+        SafeVar &random() { 
+            randombytes(this->ptr + NONCE_LEN, this->size - AUTH_TAG_LEN); 
+            return *this;
+        }
 
         // unsigned char *get_ptr() { return this->ptr; }
         

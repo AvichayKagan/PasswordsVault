@@ -21,7 +21,7 @@ class Vault {
     
     public:
 
-    Vault(int create) :master_key(KEY_LEN), session_key(KEY_LEN), disk_mang(VAULT_PATH, create) {
+    Vault(SafeVar *password = nullptr) :master_key(KEY_LEN), session_key(KEY_LEN), disk_mang(password) {
         this->disk_mang.read_vault_header(this->salt, this->master_key);
     }
 

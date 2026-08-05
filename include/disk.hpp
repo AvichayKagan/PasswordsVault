@@ -5,10 +5,7 @@
 #include "configs.hpp"
 #include "dict.hpp"
 
-#define PRE_HEADER 0xDB1D26A4734EB42CLL
-#define PRE_HEADER_SIZE 8 // in bytes
-#define HEADER_SIZE (SALT_LEN + NONCE_LEN + KEY_LEN + AUTH_TAG_LEN)
-#define BYTE_SIZE 8 // in bits
+
 
 
 class DiskManager {
@@ -19,19 +16,24 @@ class DiskManager {
         void verify_pre_header();
         void get_vault_size();
         void cut_file_size();
+        void init_vault(SafeVar &password);
 
     public:
-        DiskManager(const char *path, int create) {
-            int pre_header;
+        DiskManager(SafeVar *password = nullptr) {
             const char *mode[2] = {"rb+", "wb+"};
+            int create = (password == nullptr ? 0 : 1);
 
             file = fopen(VAULT_PATH, mode[create]);
             if (file == nullptr) {
-                if (create) throw std::runtime_error("Faield to create Vault file.");
+                if (create) throw std::runtime_error("Failed to create Vault file.");
                 throw std::runtime_error("Vault file wasn't found.");
             }
 
-            verify_pre_header();
+            if (create) {
+                init_vault(*password);
+            }
+            else verify_pre_header();
+
             get_vault_size();
         }
 

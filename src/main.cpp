@@ -2,14 +2,19 @@
 #include "crypt.hpp"
 
 int main() {
-    Vault vault(false);
-
     try {
         crypto_init();
     }
     catch (...) {
         return 1;
     }
+
+    SafeVar password(4);
+    password.get_ptr(false)[0] = '0';
+    password.get_ptr(false)[1] = '0';
+    password.get_ptr(false)[2] = '0';
+    password.get_ptr(false)[3] = '0';
+    Vault vault(&password);
 
     vault.open_vault();
 

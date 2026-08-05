@@ -11,12 +11,24 @@
 // for truncating the file on each operating system
 #ifdef _WIN32
     #include <io.h>
-    #define TRUNCATE_FILE(fd, size) _chsize_s((fd), (size))
-    #define FILENO(fp) _fileno(fp)
+    #include <stdio.h>
+
+    inline void truncate_file(FILE * file, unsigned long long pos) {
+        int fd = _fileno(file);
+        if (fd == -1) throw std::runtime_error("Failed to get file descriptor.");
+
+        if (_chsize_s(fd, pos) != 0) throw std::runtime_error("Failed to truncate file size.");
+    }
 #else
     #include <unistd.h>
-    #define TRUNCATE_FILE(fd, size) ftruncate((fd), (size))
-    #define FILENO(fp) fileno(fp)
+    #include <stdio.h>
+
+    inline void truncate_file(FILE * file, unsigned long long pos) {
+        int fd = fileno(file);
+        if (fd == -1) throw std::runtime_error("Failed to get file descriptor.");
+
+        if (ftruncate(fd, pos) != 0) throw std::runtime_error("Failed to truncate file size.");
+    }
 #endif
 
 void DiskManager::verify_pre_header() {
@@ -116,13 +128,10 @@ void DiskManager::write_vault_data(Dict &dict, SafeVar &master_key, SafeVar &ses
 void DiskManager::cut_file_size() {
     if (fflush(file) != 0) throw std::runtime_error("Failed to flush vault data.");
 
-    long current_pos = ftell(file);
+    long long current_pos = ftell(file);
     if (current_pos == -1L) throw std::runtime_error("Failed to get current file position.");
 
-    int fd = FILENO(file);
-    if (fd == -1) throw std::runtime_error("Failed to get file descriptor.");
-
-    if (TRUNCATE_FILE(fd, current_pos) != 0) throw std::runtime_error("Failed to truncate file size.");
+    truncate_file(file, current_pos);
 }
 
 

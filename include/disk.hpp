@@ -11,7 +11,7 @@
 class DiskManager {
     private:
         FILE *file;
-        long file_size;
+        long long file_size;
 
         void verify_pre_header();
         void get_vault_size();

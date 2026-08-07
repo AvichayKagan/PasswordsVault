@@ -1,3 +1,4 @@
+#include <iostream>
 #include "vault.hpp"
 #include "crypt.hpp"
 
@@ -6,6 +7,7 @@ int main() {
         crypto_init();
     }
     catch (...) {
+        std::cout << "Fatal Error: Cryptographuc library faild to init." << std::endl;
         return 1;
     }
 
@@ -16,7 +18,7 @@ int main() {
     password.get()[2] = '0';
     password.get()[3] = '0';
     password.get()[4] = '\0';
-    Vault vault(&password);
+    Vault vault;
 
     vault.open_vault();
 

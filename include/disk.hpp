@@ -6,6 +6,7 @@
 #include "dict.hpp"
 
 
+#define PRE_HEADER_SIZE 8 // in bytes
 
 
 class DiskManager {
@@ -16,21 +17,19 @@ class DiskManager {
         void verify_pre_header();
         void get_vault_size();
         void cut_file_size();
-        void init_vault(SafeVar &password);
+        void write_vault_pre_header();
 
     public:
-        DiskManager(SafeVar *password = nullptr) {
-            const char *mode[2] = {"rb+", "wb+"};
-            int create = (password == nullptr ? 0 : 1);
+        DiskManager() {
+            int create = 0;
 
-            file = fopen(VAULT_PATH, mode[create]);
-            if (file == nullptr) {
-                if (create) throw std::runtime_error("Failed to create Vault file.");
-                throw std::runtime_error("Vault file wasn't found.");
-            }
+            file = fopen(VAULT_PATH, "rb+");
+            if (file == nullptr) create = 1;
 
             if (create) {
-                init_vault(*password);
+                file = fopen(VAULT_PATH, "wb+");
+                if (file == nullptr) throw std::runtime_error("Failed to found and create Vault file.");
+                write_vault_pre_header();
             }
             else verify_pre_header();
 
@@ -46,6 +45,7 @@ class DiskManager {
         DiskManager(DiskManager&& other) = delete;
         DiskManager& operator=(DiskManager&& other) = delete;
 
+        long long get_size() { return file_size; };
 
         void read_vault_header(Salt salt, SafeVar &master_key);
 

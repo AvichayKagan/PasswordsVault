@@ -3,7 +3,6 @@
 #include "disk.hpp"
 
 #define PRE_HEADER 0xDB1D26A4734EB42CLL
-#define PRE_HEADER_SIZE 8 // in bytes
 #define HEADER_SIZE (SALT_LEN + NONCE_LEN + KEY_LEN + AUTH_TAG_LEN)
 #define BYTE_SIZE 8 // in bits
 
@@ -35,7 +34,14 @@ void DiskManager::verify_pre_header() {
     unsigned long long pre_header;
     size_t read_count = fread(&pre_header, sizeof(unsigned long long), 1, file);
 
-    if (read_count != 1 || pre_header != PRE_HEADER_SIZE) throw std::runtime_error("Vault header doesn't match.");
+    if (read_count != 1 || pre_header != PRE_HEADER) throw std::runtime_error("Vault header doesn't match.");
+}
+
+
+void DiskManager::write_vault_pre_header() {
+    unsigned long long pre_header = PRE_HEADER;
+
+    if (!fwrite(&pre_header, sizeof(unsigned long long), 1, file)) throw std::runtime_error("Couldn't write pre-header to disk.");
 }
 
 void DiskManager::get_vault_size() {
@@ -132,24 +138,4 @@ void DiskManager::cut_file_size() {
     if (current_pos == -1L) throw std::runtime_error("Failed to get current file position.");
 
     truncate_file(file, current_pos);
-}
-
-
-
-void DiskManager::init_vault(SafeVar &password) {
-    unsigned long long pre_header = PRE_HEADER;
-    SafeVar salt(SALT_LEN);
-    SafeVar master_key(KEY_LEN);
-
-    salt.random();
-    password.hash(salt.get());
-    master_key.random();
-    master_key.encrypt(password.get());
-    password.memzero();
-
-    // write the pre-header
-    if (!fwrite(&pre_header, sizeof(unsigned long long), 1, file)) throw std::runtime_error("Couldn't write pre-header to disk.");
-
-    // write the header - salt and master key
-    write_vault_header(salt.get(), master_key);
 }

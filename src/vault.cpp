@@ -8,9 +8,9 @@ void Vault::sudo(const std::function<void()>& func) {
 
     try {
         std::cout << "Please Enter Your Vault Password: " << std::flush;
-        if (input(password.get_ptr(false), MAX_PASSWORD_LENGTH, true)) throw std::runtime_error("Failed to take the vault passwrod from the user.");
-        password.hash(this->salt);
-        (this->master_key).decrypt(password.get_ptr(false), true);
+        if (input(password.get_ptr(false), MAX_PASSWORD_LENGTH, true)) throw std::runtime_error("Failed to take the vault password from the user.");
+        password.hash(salt);
+        master_key.decrypt(password.get_ptr(false), true);
         func();
     }
     catch (...) {

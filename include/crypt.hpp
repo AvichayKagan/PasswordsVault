@@ -75,27 +75,21 @@ class SafeVar {
         }
 
         
-        unsigned char *get_ptr(bool is_encrypted) { return (this->ptr - (is_encrypted)*NONCE_LEN); }
+        unsigned char *get_ptr(bool is_encrypted) { return (this->ptr + (!is_encrypted)*NONCE_LEN); }
 
-        void get_data(unsigned char *src, size_t len, bool is_encrypted) {
-            this->size = len + (!is_encrypted)*ENCRYPTION_BUFF_LEN;
-            this->ptr = src;
-        }
 
-        void memzero() { sodium_memzero(this->ptr, this->size); }
+        void memzero() { sodium_memzero(ptr, size); }
 
         SafeVar &random() { 
-            randombytes(this->ptr + NONCE_LEN, this->size - AUTH_TAG_LEN); 
+            randombytes(this->ptr + NONCE_LEN, this->size - ENCRYPTION_BUFF_LEN); 
             return *this;
         }
-
-        // unsigned char *get_ptr() { return this->ptr; }
         
         SafeVar &encrypt(Key key);
 
         SafeVar &decrypt(Key key, bool no_corrupt);
 
-        void hash(Salt salt);
+        SafeVar &hash(Salt salt);
 };
 
 void crypto_init();

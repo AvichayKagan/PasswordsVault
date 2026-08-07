@@ -46,7 +46,7 @@ void DiskManager::get_vault_size() {
 }
 
 void DiskManager::read_vault_header(Salt salt, SafeVar &master_key) {
-    size_t encrypted_key_len = KEY_LEN + AUTH_TAG_LEN;
+    size_t encrypted_key_len = KEY_LEN + ENCRYPTION_BUFF_LEN;
 
     // seek header start
     if (fseek(file, PRE_HEADER_SIZE, SEEK_SET) != 0) throw std::runtime_error("Failed to seek the header location in the vault file.");
@@ -142,11 +142,14 @@ void DiskManager::init_vault(SafeVar &password) {
     SafeVar master_key(KEY_LEN);
 
     salt.random();
-    master_key.random().encrypt(password.get_ptr(false));
+    password.hash(salt.get_ptr(false));
+    master_key.random();
+    master_key.encrypt(password.get_ptr(false));
+    password.memzero();
 
     // write the pre-header
     if (!fwrite(&pre_header, sizeof(unsigned long long), 1, file)) throw std::runtime_error("Couldn't write pre-header to disk.");
 
-    // write hte header - salt and master key
+    // write the header - salt and master key
     write_vault_header(salt.get_ptr(false), master_key);
 }

@@ -1,8 +1,10 @@
 CXX      := g++
-CXXFLAGS := -g -std=c++17 -Wall -Wextra -Iinclude -DSODIUM_STATIC
+# Added -MMD and -MP to automatically generate .d files
+CXXFLAGS := -g -std=c++17 -Wall -Wextra -Iinclude -DSODIUM_STATIC -MMD -MP
 
 CC       := gcc
-CFLAGS   := -g -Wall -Wextra -Iinclude -DSODIUM_STATIC
+# Added -MMD and -MP to automatically generate .d files
+CFLAGS   := -g -Wall -Wextra -Iinclude -DSODIUM_STATIC -MMD -MP
 
 LDFLAGS  := libs/libsodium.a -pthread
 
@@ -10,34 +12,35 @@ OBJ_DIR  := obj
 SRC_DIR  := src
 TARGET   := vault
 
-# 1. SRCS finds files in src/ (e.g. src/main.cpp, src/disk.cpp)
-CPP_SRCS     := $(wildcard $(SRC_DIR)/*.cpp)
-C_SRCS     := $(wildcard $(SRC_DIR)/*.c)
+# 1. SRCS finds files in src/
+CPP_SRCS := $(wildcard $(SRC_DIR)/*.cpp)
+C_SRCS   := $(wildcard $(SRC_DIR)/*.c)
 
 # 2. OBJS maps src/file.cpp to obj/file.o
 OBJS     := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(CPP_SRCS)) \
-			$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(C_SRCS))
+            $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(C_SRCS))
+
+# 3. DEPS maps obj/file.o to obj/file.d
+DEPS     := $(OBJS:.o=.d)
 
 all: $(TARGET)
 
-# Linking step: Always use $(CXX) when mixing C and C++ objects!
 $(TARGET): $(OBJS)
 	$(CXX) $(OBJS) $(LDFLAGS) -o $@
 
-# Pattern rule: compiles C++ files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Pattern rule: compiles C files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Order-only rule to automatically create the obj directory
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
-# Clean rule
 clean:
 	rm -rf $(OBJ_DIR) $(TARGET)
+
+# 4. Include the dependency files so Make knows about the headers
+-include $(DEPS)
 
 .PHONY: all clean

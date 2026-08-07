@@ -35,12 +35,12 @@ SafeVar& SafeVar::decrypt(Key key, bool no_corrupt) {
     SafeVar backup = *this;
 
     int error = crypto_aead_aes256gcm_decrypt(
-        this->ptr + NONCE_LEN, // write inplace the decrypted data to data
+        ptr + NONCE_LEN, // write inplace the decrypted data to data
         &dummy, // pass dummy to the the len
         NULL,
-        this->ptr + NONCE_LEN, this->size - ENCRYPTION_BUFF_LEN, // encrypted data data and its length
+        ptr + NONCE_LEN, size - NONCE_LEN, // encrypted data data and its length
         NULL, 0,
-        this->ptr, key // nounce and key
+        ptr, key // nounce and key
     );
 
     if (error) {
@@ -55,11 +55,11 @@ SafeVar& SafeVar::decrypt(Key key, bool no_corrupt) {
 }
 
 
-void SafeVar::hash(Salt salt) {
+SafeVar& SafeVar::hash(Salt salt) {
     SafeVar dest(KEY_LEN); 
 
     int error = crypto_pwhash(
-        dest.ptr,
+        dest.ptr + NONCE_LEN,
         KEY_LEN,
         (char *)this->ptr + NONCE_LEN,
         this->size - ENCRYPTION_BUFF_LEN,
@@ -71,4 +71,6 @@ void SafeVar::hash(Salt salt) {
 
     if (!error) *this = std::move(dest);
     else throw std::runtime_error("Failed to Hash");
+
+    return *this;
 }

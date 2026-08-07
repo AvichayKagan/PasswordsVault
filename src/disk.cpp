@@ -55,7 +55,7 @@ void DiskManager::read_vault_header(Salt salt, SafeVar &master_key) {
     if (fread(salt, 1, SALT_LEN, file) != SALT_LEN) throw std::runtime_error("Failed to read the salt from the disk.");
 
     // read master key (encrypted)
-    if (fread(master_key.get_ptr(true), 1, encrypted_key_len, file) != encrypted_key_len) throw std::runtime_error("Failed to read the master key from the disk.");
+    if (fread(master_key.get(), 1, encrypted_key_len, file) != encrypted_key_len) throw std::runtime_error("Failed to read the master key from the disk.");
 }
 
 void DiskManager::write_vault_header(Salt salt, SafeVar &master_key) {
@@ -68,7 +68,7 @@ void DiskManager::write_vault_header(Salt salt, SafeVar &master_key) {
     if (fwrite(salt, 1, SALT_LEN, file) != SALT_LEN) throw std::runtime_error("Failed to write the salt to disk.");
 
     // write master key (encrypted)
-    if (fwrite(master_key.get_ptr(true), 1, encrypted_key_len, file) != encrypted_key_len) throw std::runtime_error("Failed to write the master key to disk.");
+    if (fwrite(master_key.get(), 1, encrypted_key_len, file) != encrypted_key_len) throw std::runtime_error("Failed to write the master key to disk.");
 }
 
 
@@ -85,13 +85,13 @@ void DiskManager::read_vault_data(Dict &dict, SafeVar &master_key, SafeVar &sess
         SafeVar password(MAX_PASSWORD_LENGTH);
 
         // read the name
-        if (fread(name.get_ptr(true), 1, read_len_name, file) != read_len_name) break;
-        name.decrypt(master_key.get_ptr(false), false);
+        if (fread(name.get(), 1, read_len_name, file) != read_len_name) break;
+        name.decrypt(master_key.get(), false);
 
         // read the password
-        if (fread(password.get_ptr(true), 1, read_len_pass, file) != read_len_pass) break;
-        password.decrypt(master_key.get_ptr(false), false);
-        password.encrypt(session_key.get_ptr(false));
+        if (fread(password.get(), 1, read_len_pass, file) != read_len_pass) break;
+        password.decrypt(master_key.get(), false);
+        password.encrypt(session_key.get());
 
         dict.append_node(std::move(name), std::move(password));
     }
@@ -113,13 +113,13 @@ void DiskManager::write_vault_data(Dict &dict, SafeVar &master_key, SafeVar &ses
         password = i->get_password();
 
         // read the name
-        name.encrypt(master_key.get_ptr(false));
-        if (fwrite(name.get_ptr(true), 1, read_len_name, file) != read_len_name) throw std::runtime_error("Failed to write vault data.");
+        name.encrypt(master_key.get());
+        if (fwrite(name.get(), 1, read_len_name, file) != read_len_name) throw std::runtime_error("Failed to write vault data.");
 
         // read the password
-        password.decrypt(session_key.get_ptr(false), false);
-        password.encrypt(master_key.get_ptr(false));
-        if (fwrite(password.get_ptr(true), 1, read_len_pass, file) != read_len_pass) throw std::runtime_error("Failed to write vault data.");
+        password.decrypt(session_key.get(), false);
+        password.encrypt(master_key.get());
+        if (fwrite(password.get(), 1, read_len_pass, file) != read_len_pass) throw std::runtime_error("Failed to write vault data.");
     }
 
     (*this).cut_file_size();
@@ -142,14 +142,14 @@ void DiskManager::init_vault(SafeVar &password) {
     SafeVar master_key(KEY_LEN);
 
     salt.random();
-    password.hash(salt.get_ptr(false));
+    password.hash(salt.get());
     master_key.random();
-    master_key.encrypt(password.get_ptr(false));
+    master_key.encrypt(password.get());
     password.memzero();
 
     // write the pre-header
     if (!fwrite(&pre_header, sizeof(unsigned long long), 1, file)) throw std::runtime_error("Couldn't write pre-header to disk.");
 
     // write the header - salt and master key
-    write_vault_header(salt.get_ptr(false), master_key);
+    write_vault_header(salt.get(), master_key);
 }

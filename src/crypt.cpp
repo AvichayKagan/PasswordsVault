@@ -17,14 +17,14 @@ void crypto_init() {
 
 SafeVar& SafeVar::encrypt(Key key) {
     unsigned long long dummy;
-    randombytes_buf(this->ptr, NONCE_LEN); // generate the nounce
+    randombytes_buf(ptr + size - NONCE_LEN, NONCE_LEN); // generate the nounce
 
     crypto_aead_aes256gcm_encrypt(
-        this->ptr + NONCE_LEN, // write inplace the encrypted data to data
+        ptr, // write inplace the encrypted data to data
         &dummy, // pass dummy to the the len
-        this->ptr + NONCE_LEN, this->size - ENCRYPTION_BUFF_LEN, // unencrypted data and its length
+        ptr, size - ENCRYPTION_BUFF_LEN, // unencrypted data and its length
         NULL, 0, NULL, 
-        this->ptr, key // nounce and key
+        ptr + size - NONCE_LEN, key // nounce and key
     );
 
     return *this;
@@ -35,12 +35,12 @@ SafeVar& SafeVar::decrypt(Key key, bool no_corrupt) {
     SafeVar backup = *this;
 
     int error = crypto_aead_aes256gcm_decrypt(
-        ptr + NONCE_LEN, // write inplace the decrypted data to data
+        ptr, // write inplace the decrypted data to data
         &dummy, // pass dummy to the the len
         NULL,
-        ptr + NONCE_LEN, size - NONCE_LEN, // encrypted data data and its length
+        ptr, size - NONCE_LEN, // encrypted data data and its length
         NULL, 0,
-        ptr, key // nounce and key
+        ptr + size - NONCE_LEN, key // nounce and key
     );
 
     if (error) {
@@ -59,11 +59,12 @@ SafeVar& SafeVar::hash(Salt salt) {
     SafeVar dest(KEY_LEN); 
 
     int error = crypto_pwhash(
-        dest.ptr + NONCE_LEN,
-        KEY_LEN,
-        (char *)this->ptr + NONCE_LEN,
-        this->size - ENCRYPTION_BUFF_LEN,
-        salt,
+        dest.ptr, // the dest to write the hash
+        KEY_LEN, // the length of the hash
+        (char *)this->ptr, // the data to be hashed
+        this->size - ENCRYPTION_BUFF_LEN, // the size of the data to be hashed
+        salt, // the salt
+        // hashing algorithm definitions
         crypto_pwhash_OPSLIMIT_MODERATE,
         crypto_pwhash_MEMLIMIT_MODERATE,
         crypto_pwhash_ALG_ARGON2ID13

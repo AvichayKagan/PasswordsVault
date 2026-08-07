@@ -45,7 +45,7 @@ Node *Dict::search(char *name) {
     Node *curr = this->head.get();
 
     /* iterate until a match is found or list ends */
-    while (curr != nullptr && std::strcmp((char *)(curr->name).get_ptr(false), name)) {
+    while (curr != nullptr && std::strcmp((char *)(curr->name).get(), name)) {
         curr = curr->next.get();
     }
 

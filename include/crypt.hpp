@@ -75,13 +75,13 @@ class SafeVar {
         }
 
         
-        unsigned char *get_ptr(bool is_encrypted) { return (this->ptr + (!is_encrypted)*NONCE_LEN); }
+        unsigned char *get() { return this->ptr; }
 
 
         void memzero() { sodium_memzero(ptr, size); }
 
         SafeVar &random() { 
-            randombytes(this->ptr + NONCE_LEN, this->size - ENCRYPTION_BUFF_LEN); 
+            randombytes(this->ptr, this->size - ENCRYPTION_BUFF_LEN); 
             return *this;
         }
         

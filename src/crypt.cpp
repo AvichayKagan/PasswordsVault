@@ -2,11 +2,11 @@
 #include <stdexcept>
 #include "crypt.hpp"
 
+using namespace crypto;
 
-
-void crypto_init() {
+void crypto::crypt_init() {
     if (sodium_init() < 0) {
-        throw std::runtime_error("Fatal Error: Cryptographic sequence failed to initialized.");
+        throw std::runtime_error("Fatal Error: cryptoographic sequence failed to initialized.");
     }
 
     if (!crypto_aead_aes256gcm_is_available()) {
@@ -14,41 +14,45 @@ void crypto_init() {
     }
 }
 
+unsigned char* crypto::random(unsigned char *target, size_t len) { 
+    randombytes(target, len); 
+    return target;
+}
 
-SafeVar& SafeVar::encrypt(Key key) {
+SafeVar& SafeVar::encrypto(Key key) {
     unsigned long long dummy;
-    randombytes_buf(ptr + size - NONCE_LEN, NONCE_LEN); // generate the nounce
+    randombytes_buf(ptr + size - nonce_len, nonce_len); // generate the nounce
 
     crypto_aead_aes256gcm_encrypt(
-        ptr, // write inplace the encrypted data to data
+        ptr, // write inplace the encryptoed data to data
         &dummy, // pass dummy to the the len
-        ptr, size - ENCRYPTION_BUFF_LEN, // unencrypted data and its length
+        ptr, size - encryptoion_buff_len, // unencryptoed data and its length
         NULL, 0, NULL, 
-        ptr + size - NONCE_LEN, key // nounce and key
+        ptr + size - nonce_len, key // nounce and key
     );
 
     return *this;
 }
 
-SafeVar& SafeVar::decrypt(Key key, bool no_corrupt) {
+SafeVar& SafeVar::decrypto(Key key, bool no_corrupt) {
     unsigned long long dummy;
     SafeVar backup = *this;
 
     int error = crypto_aead_aes256gcm_decrypt(
-        ptr, // write inplace the decrypted data to data
+        ptr, // write inplace the decryptoed data to data
         &dummy, // pass dummy to the the len
         NULL,
-        ptr, size - NONCE_LEN, // encrypted data data and its length
+        ptr, size - nonce_len, // encryptoed data data and its length
         NULL, 0,
-        ptr + size - NONCE_LEN, key // nounce and key
+        ptr + size - nonce_len, key // nounce and key
     );
 
     if (error) {
         if (no_corrupt) {
             *this = std::move(backup);
-            throw std::runtime_error("Decryption failed: Incorrect password.");
+            throw std::runtime_error("Decryptoion failed: Incorrect password.");
         }
-        throw std::runtime_error("Decryption failed: corrupted cipher.");
+        throw std::runtime_error("Decryptoion failed: corrupted cipher.");
     }
 
     return *this;
@@ -56,13 +60,13 @@ SafeVar& SafeVar::decrypt(Key key, bool no_corrupt) {
 
 
 SafeVar& SafeVar::hash(Salt salt) {
-    SafeVar dest(KEY_LEN); 
+    SafeVar dest(key_len); 
 
     int error = crypto_pwhash(
         dest.ptr, // the dest to write the hash
-        KEY_LEN, // the length of the hash
+        key_len, // the length of the hash
         (char *)this->ptr, // the data to be hashed
-        this->size - ENCRYPTION_BUFF_LEN, // the size of the data to be hashed
+        this->size - encryptoion_buff_len, // the size of the data to be hashed
         salt, // the salt
         // hashing algorithm definitions
         crypto_pwhash_OPSLIMIT_MODERATE,

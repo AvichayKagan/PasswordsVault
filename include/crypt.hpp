@@ -5,91 +5,96 @@
 #include <new>
 #include "sodium.h"
 
-#define KEY_LEN (crypto_aead_aes256gcm_KEYBYTES)
-#define SALT_LEN (crypto_pwhash_SALTBYTES)
-#define NONCE_LEN (crypto_aead_aes256gcm_NPUBBYTES)
-#define AUTH_TAG_LEN (crypto_aead_aes256gcm_ABYTES)
-#define ENCRYPTION_BUFF_LEN (NONCE_LEN + AUTH_TAG_LEN) // the size encrytped data is more than the original data (the auth tag + nonce)
+namespace crypto {
+    constexpr int key_len = crypto_aead_aes256gcm_KEYBYTES;
+    constexpr int salt_len = crypto_pwhash_SALTBYTES;
 
 
-typedef unsigned char Salt[SALT_LEN];
+    using Salt = unsigned char[salt_len];
+    using Key = unsigned char[key_len];
 
-typedef unsigned char Key[KEY_LEN];
+    void crypt_init();
 
+    unsigned char *random(unsigned char *target, size_t len);
 
-class SafeVar {
-    private:
-        size_t size; // total allocated size in bytes
-        unsigned char *ptr = nullptr;
-    
-    public:
-        SafeVar() = default;
-
-        SafeVar(size_t size) {
-            this->size = size + ENCRYPTION_BUFF_LEN;
-            this->ptr = (unsigned char *)sodium_malloc(this->size);
-            if (this->ptr == nullptr) throw std::bad_alloc();
-        };
-
-        ~SafeVar() { if (ptr != nullptr) sodium_free(ptr); }
+    class SafeVar {
+        private:
+            size_t size; // total allocated size in bytes
+            unsigned char *ptr = nullptr;
         
-        SafeVar(const SafeVar& other) {
-            this->size = other.size;
-            this->ptr = (unsigned char *)sodium_malloc(other.size);
-            if (this->ptr == nullptr) throw std::bad_alloc();
-            std::memcpy(this->ptr, other.ptr, this->size);
-        }
-
-        SafeVar& operator=(const SafeVar& other) {
-            if (this == &other) return *this;
-
-            unsigned char *temp = (unsigned char *)sodium_malloc(other.size);
-            if (temp == nullptr) throw std::bad_alloc();
-
-            this->size = other.size;
-            sodium_free(this->ptr);
-            this->ptr = temp;
-            std::memcpy(this->ptr, other.ptr, this->size);
-
-            return *this;
-        }
-
-        SafeVar(SafeVar&& other) noexcept {
-            this->size = other.size;
-            this->ptr = other.ptr;
-            other.size = 0;
-            other.ptr = nullptr;
-        }
-
-        SafeVar& operator=(SafeVar&& other) noexcept {
-            if (this == &other) return *this;
-
-            sodium_free(this->ptr);
-
-            this->size = other.size;
-            this->ptr = other.ptr;
-            other.size = 0;
-            other.ptr = nullptr;
-
-            return *this;
-        }
-
-        
-        unsigned char *get() { return this->ptr; }
+        public:
+            static constexpr int nonce_len = crypto_aead_aes256gcm_NPUBBYTES;
+            static constexpr int auth_tag_len = crypto_aead_aes256gcm_ABYTES;
+            static constexpr int encryptoion_buff_len = nonce_len + auth_tag_len;
 
 
-        void memzero() { sodium_memzero(ptr, size); }
 
-        SafeVar &random() { 
-            randombytes(this->ptr, this->size - ENCRYPTION_BUFF_LEN); 
-            return *this;
-        }
-        
-        SafeVar &encrypt(Key key);
+            SafeVar() = default;
 
-        SafeVar &decrypt(Key key, bool no_corrupt);
+            SafeVar(size_t size) {
+                this->size = size + encryptoion_buff_len;
+                this->ptr = (unsigned char *)sodium_malloc(this->size);
+                if (this->ptr == nullptr) throw std::bad_alloc();
+            };
 
-        SafeVar &hash(Salt salt);
-};
+            ~SafeVar() { if (ptr != nullptr) sodium_free(ptr); }
+            
+            SafeVar(const SafeVar& other) {
+                this->size = other.size;
+                this->ptr = (unsigned char *)sodium_malloc(other.size);
+                if (this->ptr == nullptr) throw std::bad_alloc();
+                std::memcpy(this->ptr, other.ptr, this->size);
+            }
 
-void crypto_init();
+            SafeVar& operator=(const SafeVar& other) {
+                if (this == &other) return *this;
+
+                unsigned char *temp = (unsigned char *)sodium_malloc(other.size);
+                if (temp == nullptr) throw std::bad_alloc();
+
+                this->size = other.size;
+                sodium_free(this->ptr);
+                this->ptr = temp;
+                std::memcpy(this->ptr, other.ptr, this->size);
+
+                return *this;
+            }
+
+            SafeVar(SafeVar&& other) noexcept {
+                this->size = other.size;
+                this->ptr = other.ptr;
+                other.size = 0;
+                other.ptr = nullptr;
+            }
+
+            SafeVar& operator=(SafeVar&& other) noexcept {
+                if (this == &other) return *this;
+
+                sodium_free(this->ptr);
+
+                this->size = other.size;
+                this->ptr = other.ptr;
+                other.size = 0;
+                other.ptr = nullptr;
+
+                return *this;
+            }
+
+            
+            unsigned char *get() { return this->ptr; }
+
+
+            void memzero() { sodium_memzero(ptr, size); }
+
+            SafeVar &random() { 
+                randombytes(ptr, size - encryptoion_buff_len); 
+                return *this;
+            }
+            
+            SafeVar &encrypto(Key key);
+
+            SafeVar &decrypto(Key key, bool no_corrupt);
+
+            SafeVar &hash(Salt salt);
+    };
+}

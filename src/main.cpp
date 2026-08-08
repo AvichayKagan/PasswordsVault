@@ -4,15 +4,15 @@
 
 int main() {
     try {
-        crypto_init();
+        crypto::crypt_init();
     }
     catch (...) {
-        std::cout << "Fatal Error: Cryptographuc library faild to init." << std::endl;
+        std::cout << "Fatal Error: cryptoographuc library faild to init." << std::endl;
         return 1;
     }
 
 
-    SafeVar password(MAX_PASSWORD_LENGTH);
+    crypto::SafeVar password(config::max_password_len);
     password.get()[0] = '0';
     password.get()[1] = '0';
     password.get()[2] = '0';

@@ -4,6 +4,7 @@
 
 
 #ifndef _cplusplus
+namespace safeIO {
 extern "C" {
 #endif
 
@@ -13,5 +14,6 @@ int output(void *src, size_t len, int is_safe);
 
 
 #ifndef _cplusplus
-}
+} //extern C
+} // namespace safeIO
 #endif

@@ -13,7 +13,6 @@ class DiskManager {
 
 
         static constexpr unsigned long long pre_header  = 0xDB1D26A4734EB42CLL;
-        static constexpr int header_size = crypto::salt_len + crypto::SafeVar::nonce_len + crypto::key_len + crypto::SafeVar::auth_tag_len;
 
         void verify_pre_header();
         void get_vault_size();
@@ -24,6 +23,7 @@ class DiskManager {
 
     public:
         static constexpr int pre_header_size = 8;
+        static constexpr int header_size = crypto::salt_len + crypto::SafeVar::nonce_len + crypto::key_len + crypto::SafeVar::auth_tag_len;
 
         DiskManager() {
             int create = 0;

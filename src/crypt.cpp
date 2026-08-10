@@ -6,11 +6,11 @@ using namespace crypto;
 
 void crypto::crypt_init() {
     if (sodium_init() < 0) {
-        throw std::runtime_error("Fatal Error: cryptoographic sequence failed to initialized.");
+        throw std::runtime_error("Cryptoographic sequence failed to initialized.");
     }
 
     if (!crypto_aead_aes256gcm_is_available()) {
-        throw std::runtime_error("Fatal Error: CPU does not support AES hardware instructions.");
+        throw std::runtime_error("CPU does not support AES hardware instructions.");
     }
 }
 

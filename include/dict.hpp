@@ -19,13 +19,15 @@ class Dict {
 
         Node *append_node(crypto::SafeVar &&name, crypto::SafeVar&& password);
 
-        void delete_node(Node *node);
+        Node *append_node_raw(std::unique_ptr<Node> new_node);
+
+        std::unique_ptr<Node> delete_node(Node *node, bool catch_);
 
         Node *search(char *name);
 
         Node *get_head() { return head.get(); }
 
-        void empty() { head.reset(); tail = nullptr; }
+        void empty() { head.reset(); tail = nullptr; } // must not except
 };
 
 
@@ -45,6 +47,7 @@ class Dict::Node {
             this->password = std::move(password);
             this->name = std::move(name);
             this->next = nullptr;
+            this->prev = nullptr;
         }
 
         crypto::SafeVar& get_name() { return this->name; }

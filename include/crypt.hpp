@@ -19,7 +19,7 @@ namespace crypto {
 
     class SafeVar {
         private:
-            size_t size; // total allocated size in bytes
+            size_t size = -1; // total allocated size in bytes
             unsigned char *ptr = nullptr;
         
         public:

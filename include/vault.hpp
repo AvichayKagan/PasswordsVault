@@ -15,9 +15,9 @@ class Vault {
         crypto::Salt salt;
         crypto::SafeVar master_key;
         crypto::SafeVar session_key;
-        Dict dictionary;
         DiskManager disk_mang;
-        bool is_open = false;
+        Dict dictionary;
+        bool _is_open = false;
 
 
         void init_vault();
@@ -32,7 +32,32 @@ class Vault {
 
         void open_vault();
 
-        void lock_vault() { this->dictionary.empty(); is_open = false; };
+        void close_vault() { this->dictionary.empty(); _is_open = false; };
 
         void sudo(const std::function<void()>& func);
+
+        void add_password(crypto::SafeVar &&name, crypto::SafeVar &&password);
+
+        bool del_password(crypto::SafeVar &&name);
+
+        bool exists(crypto::SafeVar &name) { return (dictionary.search((char *)name.get()) == nullptr) ? false : true; }
+
+        crypto::SafeVar search(crypto::SafeVar &name) {
+            Dict::Node *node = dictionary.search((char *)name.get());
+            crypto::SafeVar ret;
+
+            if (node == nullptr) ret = node->get_password().decrypto(session_key.get(), false);
+
+            return ret;
+        }
+
+        long long get_size() { return disk_mang.get_size(); }
+
+        void list_all() {
+            for (Dict::Node *i = dictionary.get_head(); i != nullptr; i = i->get_next() ) {
+                std::cout << i->get_name().get() << std::endl;
+            }
+        }
+
+        bool is_open() { return _is_open; }
 };

@@ -9,20 +9,43 @@ Dict::Node *Dict::append_node(crypto::SafeVar &&name, crypto::SafeVar&& password
     auto new_node = std::make_unique<Dict::Node>(std::move(password), std::move(name));
 
     /* attaching the new node to the list */
-    if (this->head == nullptr) { /*if the list is empty */
-        this->head = std::move(new_node);
-        this->tail = new_node.get();
+    if (head == nullptr) { /*if the list is empty */
+        tail = new_node.get();
         new_node->prev = nullptr;
+        head = std::move(new_node);
     } else {
-        this->tail->next = std::move(new_node);
-        new_node->prev = this->tail;
-        this->tail = new_node.get();
+        new_node->prev = tail;
+        tail->next = std::move(new_node);
+        tail = tail->next.get();
     }
     
-    return new_node.get();
+    return tail;
 }
 
-void Dict::delete_node(Node *node) {
+
+Dict::Node *Dict::append_node_raw(std::unique_ptr<Node> new_node) {
+    /* attaching the new node to the list */
+    if (head == nullptr) { /*if the list is empty */
+        tail = new_node.get();
+        new_node->prev = nullptr;
+        head = std::move(new_node);
+    } else {
+        new_node->prev = tail;
+        tail->next = std::move(new_node);
+        tail = tail->next.get();
+    }
+    
+    return tail;
+}
+
+std::unique_ptr<Dict::Node> Dict::delete_node(Node *node, bool catch_) {
+    std::unique_ptr<Dict::Node> ret;
+
+    if (node->prev != nullptr) {
+        ret = std::move(node->prev->next);
+    }
+    else ret = std::move(head);
+
     if (node->prev == nullptr && node->next == nullptr) { //node is the only node
         this->head = nullptr;
         this->tail = nullptr;
@@ -38,8 +61,11 @@ void Dict::delete_node(Node *node) {
     else { // node is in the middle
         node->next->prev = node->prev;
         node->prev->next = std::move(node->next);
-    } 
+    }
+
+    return catch_ ? std::move(ret) : nullptr;
 }
+
 
 Dict::Node *Dict::search(char *name) {
     Node *curr = this->head.get();

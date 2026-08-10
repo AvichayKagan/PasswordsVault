@@ -71,8 +71,8 @@ void DiskManager::write_vault_header(Salt salt, SafeVar &master_key) {
 
 
 void DiskManager::read_vault_data(Dict &dict, SafeVar &master_key, SafeVar &session_key) {
-    size_t read_len_name = config::max_name_len + SafeVar::auth_tag_len;
-    size_t read_len_pass = config::max_password_len + SafeVar::auth_tag_len;
+    size_t read_len_name = config::max_name_len + SafeVar::encryptoion_buff_len;
+    size_t read_len_pass = config::max_password_len + SafeVar::encryptoion_buff_len;
 
     // seek  end of header
     if (fseek(file, pre_header_size + header_size, SEEK_SET) != 0) throw std::runtime_error("Failed to seek the header location in the vault file.");
@@ -96,11 +96,11 @@ void DiskManager::read_vault_data(Dict &dict, SafeVar &master_key, SafeVar &sess
     if (!feof(file)) throw std::runtime_error("Failed to read vault data.");
 }
 
-void DiskManager::write_vault_data(Dict &dict, SafeVar &master_key, SafeVar &session_key) {
+void DiskManager::write_vault_data(Dict &dict, SafeVar &master_key, SafeVar &session_key) { // need to ahndle failure and disk corruption
     SafeVar name;
     SafeVar password;
-    size_t read_len_name = config::max_name_len + SafeVar::auth_tag_len;
-    size_t read_len_pass = config::max_password_len + SafeVar::auth_tag_len;
+    size_t read_len_name = config::max_name_len + SafeVar::encryptoion_buff_len;
+    size_t read_len_pass = config::max_password_len + SafeVar::encryptoion_buff_len;
 
     // seek  end of header
     if (fseek(file, pre_header_size + header_size, SEEK_SET) != 0) throw std::runtime_error("Failed to seek the header location in the vault file.");
@@ -109,17 +109,17 @@ void DiskManager::write_vault_data(Dict &dict, SafeVar &master_key, SafeVar &ses
         name = i->get_name();
         password = i->get_password();
 
-        // read the name
+        // write the name
         name.encrypto(master_key.get());
         if (fwrite(name.get(), 1, read_len_name, file) != read_len_name) throw std::runtime_error("Failed to write vault data.");
 
-        // read the password
+        // write the password
         password.decrypto(session_key.get(), false);
         password.encrypto(master_key.get());
         if (fwrite(password.get(), 1, read_len_pass, file) != read_len_pass) throw std::runtime_error("Failed to write vault data.");
     }
 
-    (*this).cut_file_size();
+    this->cut_file_size();
 }
 
 void DiskManager::cut_file_size() {

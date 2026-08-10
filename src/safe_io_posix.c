@@ -32,15 +32,15 @@ static inline int safe_input(char *buffer, size_t max_len) {
     int status;
     int error = 0;
 
-    // 1. Save original terminal settings and clone them
+    // Save original terminal settings and clone them
     if (tcgetattr(STDIN_FILENO, &oldt)) return unsafe_input(buffer, max_len);
     newt = oldt;
 
-    // 2. Disable canonical mode (ICANON) and echo (ECHO)
+    // Disable canonical mode (ICANON) and echo (ECHO)
     newt.c_lflag &= ~(ICANON | ECHO);
     if (tcsetattr(STDIN_FILENO, TCSANOW, &newt)) return unsafe_input(buffer, max_len);
 
-    // 3. Read characters one by one
+    // read characters
     while (1) {
 
         status = read(STDIN_FILENO, &ch, 1);
@@ -55,7 +55,7 @@ static inline int safe_input(char *buffer, size_t max_len) {
             break;
         }
 
-        // Handle Backspace / Delete (ASCII 127 or 8)
+        // Handle backspace / delete (ASCII 127 or 8)
         if (ch == 127 || ch == '\b') {
             if (idx > 0) {
                 idx--;
@@ -72,7 +72,7 @@ static inline int safe_input(char *buffer, size_t max_len) {
 
     buffer[idx] = '\0'; // Null-terminate the string
 
-    // 4. Always restore original terminal settings before exiting function
+    // restore original terminal settings before exiting function
     if (tcsetattr(STDIN_FILENO, TCSANOW, &oldt)) return -1;
     write(STDOUT_FILENO, "\n", 1);
 

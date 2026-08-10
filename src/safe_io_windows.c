@@ -33,25 +33,18 @@ static inline int safe_input(char *buffer, size_t max_len) {
     while (1) {
         ch = _getch();
 
-        // Handle Arrow keys and Function keys (discard them)
+        // Handle arrow and funciton keys (discard them)
         if (ch == 0 || ch == 224) {
-            _getch(); // Call it again to throw away the second byte
-            continue; // Skip the rest of the loop
+            _getch();
+            continue;
         }
 
-        status = read(STDIN_FILENO, &ch, 1);
-        if (status == -1) {
-            error = -1;
-            break;
-        }
-        else if (status == 0) break;
-
-        // Stop on Enter key (Newline or Carriage Return)
+        // Stop on enter
         if (ch == '\n' || ch == '\r') {
             break;
         }
 
-        // Handle Backspace / Delete (ASCII 127 or 8)
+        // Handle backspace
         if (ch == '\b') {
             if (idx > 0) {
                 idx--;

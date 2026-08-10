@@ -25,7 +25,7 @@ class Dict {
 
         Node *get_head() { return head.get(); }
 
-        void empty() { head.reset(); }
+        void empty() { head.reset(); tail = nullptr; }
 };
 
 

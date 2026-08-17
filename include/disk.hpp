@@ -9,13 +9,11 @@
 class DiskManager {
     private:
         FILE *file;
-        long long file_size;
 
 
         static constexpr unsigned long long pre_header  = 0xDB1D26A4734EB42CLL;
 
         void verify_pre_header();
-        void get_vault_size();
         void cut_file_size();
         void write_vault_pre_header() {
             if (!fwrite(&pre_header, sizeof(unsigned long long), 1, file)) throw std::runtime_error("Couldn't write pre-header to disk.");
@@ -37,8 +35,6 @@ class DiskManager {
                 write_vault_pre_header();
             }
             else verify_pre_header();
-
-            get_vault_size();
         }
 
         ~DiskManager() {
@@ -50,7 +46,7 @@ class DiskManager {
         DiskManager(DiskManager&& other) = delete;
         DiskManager& operator=(DiskManager&& other) = delete;
 
-        long long get_size() { return file_size; };
+        long long get_size();
 
         void read_vault_header(crypto::Salt salt, crypto::SafeVar &master_key);
 

@@ -81,8 +81,7 @@ namespace crypto {
             }
 
             
-            unsigned char *get() { return this->ptr; }
-
+            unsigned char *get() { return ptr; }
 
             void memzero() { sodium_memzero(ptr, size); }
 

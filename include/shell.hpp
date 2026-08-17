@@ -5,22 +5,21 @@
 
 
 class Shell {
-    private: 
+    private:
+
         Vault &vault;
-        std::string command;
+        crypto::SafeVar command;
         crypto::SafeVar arg;
 
 
         int get_code();
 
+        void reset() { arg.memzero(); command.memzero(); }
+
         bool is_open() { 
             if (vault.is_open()) return true;
             std::cout << "Cannot complete the operation, the vault is closed, please type 'open' to open it." << std::endl;
             return false;
-        }
-
-        void none() {
-            std::cout << "Unrecognized command '"<< command << "', did you mean '' ? please type 'help' to list the avalible commands." << std::endl;
         }
 
         void close() { 
@@ -35,7 +34,12 @@ class Shell {
 
         void add();
 
-        void list() { vault.list_all(); }
+        void list() { 
+            if (vault.is_empty()) {
+                std::cout << "Vault is empty." << std::endl;
+            }
+            else vault.list_all(); 
+        }
 
         void show();
 
@@ -55,12 +59,31 @@ class Shell {
             else std::cout << "Cannot delete '"<< arg.get() << "' as it doesn't exists in the vault." << std::endl;
         }
 
+
+        bool parse(unsigned char *input, int *code);
+
+
+
         static constexpr const char * const commands[] = {"open", "close", "add", "list", "show", "del", "stats", nullptr};
+
+        static constexpr int max_input_len = []() {
+                int max_len = 0;
+
+            for (int i = 0; commands[i] != nullptr; i++) {
+                int new_len = std::string_view(*commands).length();
+                if (max_len < new_len) max_len = new_len;
+            }
+
+            return max_len;
+        } ()
+        + config::max_name_len + config::max_password_len + 1; // 1 for null terminator
+
         using MethodPtr = void (Shell::*)();
-        static constexpr MethodPtr operations[] = {&Shell::open, &Shell::close, &Shell::add, &Shell::list, &Shell::show, &Shell::del, &Shell::stats, &Shell::none};
+        static constexpr MethodPtr operations[] = {&Shell::open, &Shell::close, &Shell::add, &Shell::list, &Shell::show, &Shell::del, &Shell::stats};
+        static constexpr int commands_has_arg[] = {false, false, true, false, true, true, false};
 
     public:
-        Shell(Vault &vault) : vault(vault) {};
+        Shell(Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};
 
         void run();
 };

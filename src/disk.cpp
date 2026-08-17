@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <memory>
+#include <iostream>
 #include "disk.hpp"
 
 using namespace crypto;
@@ -35,11 +36,13 @@ void DiskManager::verify_pre_header() {
 }
 
 
-void DiskManager::get_vault_size() {
+long long DiskManager::get_size() {
     if (fseek(file, 0, SEEK_END) != 0) throw std::runtime_error("Faield to seek to end of the vault file");
 
-    file_size = ftell(file);
+    int file_size = ftell(file);
     if (file_size == -1L) throw std::runtime_error("Faield to seek to end of the vault file");
+
+    return file_size;
 }
 
 void DiskManager::read_vault_header(Salt salt, SafeVar &master_key) {
@@ -104,7 +107,7 @@ void DiskManager::write_vault_data(Dict &dict, SafeVar &master_key, SafeVar &ses
 
     // seek  end of header
     if (fseek(file, pre_header_size + header_size, SEEK_SET) != 0) throw std::runtime_error("Failed to seek the header location in the vault file.");
-
+    
     for (Dict::Node *i = dict.get_head(); i != nullptr; i = i->get_next() ) {
         name = i->get_name();
         password = i->get_password();
@@ -118,7 +121,7 @@ void DiskManager::write_vault_data(Dict &dict, SafeVar &master_key, SafeVar &ses
         password.encrypto(master_key.get());
         if (fwrite(password.get(), 1, read_len_pass, file) != read_len_pass) throw std::runtime_error("Failed to write vault data.");
     }
-
+    
     this->cut_file_size();
 }
 

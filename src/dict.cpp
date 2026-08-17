@@ -4,25 +4,6 @@
 #include "dict.hpp"
 
 
-Dict::Node *Dict::append_node(crypto::SafeVar &&name, crypto::SafeVar&& password) {
-    /* allocate new Node */
-    auto new_node = std::make_unique<Dict::Node>(std::move(password), std::move(name));
-
-    /* attaching the new node to the list */
-    if (head == nullptr) { /*if the list is empty */
-        tail = new_node.get();
-        new_node->prev = nullptr;
-        head = std::move(new_node);
-    } else {
-        new_node->prev = tail;
-        tail->next = std::move(new_node);
-        tail = tail->next.get();
-    }
-    
-    return tail;
-}
-
-
 Dict::Node *Dict::append_node_raw(std::unique_ptr<Node> new_node) {
     /* attaching the new node to the list */
     if (head == nullptr) { /*if the list is empty */

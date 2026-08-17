@@ -11,11 +11,11 @@ void Vault::sudo(const std::function<void()>& func) {
         std::cout << "Please enter the master password to continue with this operation: " << std::flush;
         if (safeIO::input(password.get(), config::max_password_len, true)) throw std::runtime_error("Failed to take the vault password from the user.");
         password.hash(salt);
-        master_key.decrypto(password.get(), true);
+        master_key.decrypto(password.get(), true); // must know if the error is here!
         func();
     }
     catch (...) {
-        master_key.encrypto(password.get());
+        master_key.encrypto(password.get()); // if the error is in decrypting i should NOT do so
         throw;
     }
 
@@ -23,21 +23,24 @@ void Vault::sudo(const std::function<void()>& func) {
 }
 
 void Vault::open_vault() {
-    // init session key
-    session_key.random();
+    while (true) {
+        // init session key
+        session_key.random();
 
-    // init the dictionary
-    try {
-        this->sudo([this]() {
-            disk_mang.read_vault_data(dictionary, master_key, session_key);
-        });
-    }
-    catch (...) {
-        dictionary.empty();
-        throw;
-    }
+        // init the dictionary
+        try {
+            this->sudo([this]() {
+                disk_mang.read_vault_data(dictionary, master_key, session_key);
+            });
+        }
+        catch (const std::exception& e) {
+            dictionary.empty();
+            throw;
+        }
 
-    _is_open = true;
+        _is_open = true;
+        break;
+    }
 }
 
 
@@ -69,7 +72,6 @@ void Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password) {
         }
     });
 }
-
 
 bool Vault::del_password(crypto::SafeVar &&name) {
     int ret = true;

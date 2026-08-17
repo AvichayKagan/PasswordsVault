@@ -17,7 +17,10 @@ class Dict {
     public:
         Dict() { tail = nullptr; } // head init to nullptr by default as unique pointer
 
-        Node *append_node(crypto::SafeVar &&name, crypto::SafeVar&& password);
+        Node *append_node(crypto::SafeVar &&name, crypto::SafeVar&& password) {
+            auto new_node = std::make_unique<Node>(std::move(password), std::move(name));
+            return append_node_raw(std::move(new_node));
+        }
 
         Node *append_node_raw(std::unique_ptr<Node> new_node);
 

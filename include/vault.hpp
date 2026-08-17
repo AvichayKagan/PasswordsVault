@@ -20,6 +20,7 @@ class Vault {
         bool _is_open = false;
 
 
+        void sudo(const std::function<void()>& func);
         void init_vault();
     
     public:
@@ -33,8 +34,6 @@ class Vault {
         void open_vault();
 
         void close_vault() { this->dictionary.empty(); _is_open = false; };
-
-        void sudo(const std::function<void()>& func);
 
         void add_password(crypto::SafeVar &&name, crypto::SafeVar &&password);
 
@@ -58,6 +57,8 @@ class Vault {
                 std::cout << i->get_name().get() << std::endl;
             }
         }
+
+        bool is_empty() { return !dictionary.get_head(); }
 
         bool is_open() { return _is_open; }
 };

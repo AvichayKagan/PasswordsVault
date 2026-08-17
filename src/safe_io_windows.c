@@ -5,47 +5,35 @@
 #include <stdlib.h>
 #include <string.h>
 #include <conio.h>
+#include "sodium.h"
 
 
-static inline int safe_input(char *buffer, size_t max_len);
-
-static inline int unsafe_input(char *buffer, size_t max_len);
-
-
-int input(void *target, size_t len, int is_safe) {
-    if (target == NULL || len == 0) return -1;
-
-    switch (is_safe) {
-        case 0:
-            return unsafe_input(target, len);
-        default:
-            return safe_input(target, len);
-    }
-}
-
-
-static inline int safe_input(char *buffer, size_t max_len) {
+int input(char *buffer, size_t max_len, int hide_char) {
     size_t idx = 0;
-    char ch;
+    char *ch;
     int status;
     int error = 0;
 
+    // cannot palce sesitive info on the stack, must use sodium_malloc
+    ch = sodium_malloc(1);
+    if (ch == NULL) return -1;
+
     while (1) {
-        ch = _getch();
+        *ch = _getch();
 
         // Handle arrow and funciton keys (discard them)
-        if (ch == 0 || ch == 224) {
+        if (*ch == 0 || *ch == 224) {
             _getch();
             continue;
         }
 
         // Stop on enter
-        if (ch == '\n' || ch == '\r') {
+        if (*ch == '\n' || *ch == '\r') {
             break;
         }
 
         // Handle backspace
-        if (ch == '\b') {
+        if (*ch == '\b') {
             if (idx > 0) {
                 idx--;
                 // Move cursor back, erase asterisk with space, move cursor back again
@@ -54,52 +42,18 @@ static inline int safe_input(char *buffer, size_t max_len) {
             }
         }
         // Handle standard printable ASCII characters
-        else if (ch >= 32 && ch <= 126 && idx < max_len - 1) {
-            buffer[idx++] = (char)ch;
-            printf("*");
+        else if (*ch >= 32 && *ch <= 126 && idx < max_len - 1) {
+            buffer[idx++] = *ch;
+            putchar(hide_char ? "*" : *ch);
             fflush(stdout);
         }
     }
 
     buffer[idx] = '\0'; // Null-terminate the string
 
+    sodium_Free(ch);
     return 0;
 }
 
 
-
-static inline int unsafe_input(char *buffer, size_t max_len) {
-    int ch;
-    size_t len;
-
-    if (fgets(buffer, max_len, stdin) != NULL) {
-        len = strcspn(buffer, "\n");
-
-        if (buffer[len] == '\n') {
-            // Newline found: replace it with null terminator
-            buffer[len] = '\0';
-            return 0;
-        }
-         
-        if (feof(stdin)) {
-            return 0;
-        }
-        else {
-            // Newline NOT found: input exceeded max_len - 1!
-            // Flush leftover characters until newline or EOF to clear stdin
-            while ((ch = getchar()) != '\n' && ch != EOF);
-            return 1;
-        }
-    }
-
-    if (feof(stdin)) {
-        buffer[0] = '\0';
-        return 0; // EOF reached with 0 bytes read
-    }
-
-    return -1;
-}
-
-#else
-typedef int dummy_posix_guard;
 #endif // _WIN32

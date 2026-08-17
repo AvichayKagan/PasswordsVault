@@ -8,7 +8,8 @@ namespace safeIO {
 extern "C" {
 #endif
 
-int input(void *target, size_t len, int is_safe);
+
+int input(unsigned char *buffer, size_t max_len, int hide_char);
 
 int output(void *src, size_t len, int is_safe);
 

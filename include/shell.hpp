@@ -58,7 +58,7 @@ class Shell {
 
         
         void del() {
-            if (vault.del_password(std::move(arg))) {
+            if (vault.del_password(arg)) {
                 std::cout << arg.get() << " has been deleted from the vault." << std::endl;
             }
             else std::cout << "Cannot delete '"<< arg.get() << "' as it doesn't exists in the vault." << std::endl;

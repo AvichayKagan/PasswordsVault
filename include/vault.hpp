@@ -43,7 +43,7 @@ class Vault {
 
         void add_password(crypto::SafeVar &&name, crypto::SafeVar &&password);
 
-        bool del_password(crypto::SafeVar &&name);
+        bool del_password(crypto::SafeVar &name);
 
         bool exists(crypto::SafeVar &name) { return (dictionary.search((char *)name.get()) == nullptr) ? false : true; }
 
@@ -51,7 +51,7 @@ class Vault {
             Dict::Node *node = dictionary.search((char *)name.get());
             crypto::SafeVar ret;
 
-            if (node == nullptr) ret = node->get_password().decrypto(session_key.get(), false);
+            if (node != nullptr) ret = node->get_password().decrypto(session_key.get(), false);
 
             return ret;
         }

@@ -25,9 +25,9 @@ void Shell::add() {
     std::cout << "Please enter the password for " << arg.get() << ": " << std::flush;
     if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     
-    vault.add_password(std::move(arg), std::move(password));
-    
-    std::cout << (char *)arg.get() << " has been added to the vault." << std::endl;
+    vault.add_password(crypto::SafeVar(arg), std::move(password));
+
+    std::cout << "password has been added to the vault." << std::endl;
 }
 
 void Shell::show() {
@@ -38,7 +38,7 @@ void Shell::show() {
         return;
     }
 
-    std::cout << "The password for '" << arg.get() << "' is: " << password.get() << ",Please press enter to delete this massage." << std::endl;
+    std::cout << "The password for '" << arg.get() << "' is: " << password.get() << "   ,Please press enter to delete this massage." << std::endl;
 }
 
 

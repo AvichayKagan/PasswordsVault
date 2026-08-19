@@ -2,20 +2,20 @@
 #include "vault.hpp"
 #include "safe_io.h"
 
-using namespace crypto;
+using namespace vault;
 
 void Vault::sudo(const std::function<void()>& func) { 
-    SafeVar password(config::max_password_len);
+    crypto::SafeVar password(config::max_password_len);
 
     try {
         std::cout << "Please enter the master password to continue with this operation: " << std::flush;
-        if (safeIO::input(password.get(), config::max_password_len, true)) throw std::runtime_error("Failed to take the vault password from the user.");
+        if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.");
         password.hash(salt);
         master_key.decrypto(password.get(), true); // must know if the error is here!
         func();
     }
     catch (...) {
-        master_key.encrypto(password.get()); // if the error is in decrypting i should NOT do so
+        master_key.encrypto(password.get()); // if the error is in decrypting it should NOT do so
         throw;
     }
 
@@ -45,13 +45,13 @@ void Vault::open_vault() {
 
 
 void Vault::init_vault() {
-    SafeVar password(config::max_password_len);
-    Salt salt;
-    SafeVar master_key(key_len);
+    crypto::SafeVar password(config::max_password_len);
+    crypto::Salt salt;
+    crypto::SafeVar master_key(crypto::key_len);
 
     std::cout << "Please choose and enter a master password for the new vault: " << std::flush;
-    if (safeIO::input(password.get(), config::max_password_len, true)) throw std::runtime_error("Failed to take the vault password from the user.");
-    password.hash(random(salt, salt_len));
+    if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.");
+    password.hash(crypto::random(salt, crypto::salt_len));
     master_key.random().encrypto(password.get());
     password.memzero();
 

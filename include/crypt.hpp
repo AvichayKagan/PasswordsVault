@@ -4,11 +4,27 @@
 #include <utility>
 #include <new>
 #include "sodium.h"
+#include "configs.hpp"
 
 namespace crypto {
     constexpr int key_len = crypto_aead_aes256gcm_KEYBYTES;
     constexpr int salt_len = crypto_pwhash_SALTBYTES;
 
+
+    class Error : public config::GeneralError {
+        public:
+            using config::GeneralError::GeneralError;
+    };
+
+    enum ErrorCode {
+        InitFail    = 1,
+        AESSupportMissing   = 2,
+
+        IncorrectPassword    = 11,
+        CurrptedCipher    = 12,
+
+        HashFail          = 21,
+    };
 
     using Salt = unsigned char[salt_len];
     using Key = unsigned char[key_len];

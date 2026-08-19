@@ -6,11 +6,11 @@ using namespace crypto;
 
 void crypto::crypt_init() {
     if (sodium_init() < 0) {
-        throw std::runtime_error("Cryptoographic sequence failed to initialized.");
+        throw Error("Cryptographic sequence failed to initialized.", ErrorCode::InitFail);
     }
 
     if (!crypto_aead_aes256gcm_is_available()) {
-        throw std::runtime_error("CPU does not support AES hardware instructions.");
+        throw Error("CPU does not support AES hardware instructions.", ErrorCode::AESSupportMissing);
     }
 }
 
@@ -50,9 +50,9 @@ SafeVar& SafeVar::decrypto(Key key, bool no_corrupt) {
     if (error) {
         if (no_corrupt) {
             *this = std::move(backup);
-            throw std::runtime_error("Decryptoion failed: Incorrect password.");
+            throw Error("Decryption failed: Incorrect password.", ErrorCode::IncorrectPassword);
         }
-        throw std::runtime_error("Decryptoion failed: corrupted cipher.");
+        throw Error("Decryptoion failed: corrupted cipher.", ErrorCode::CurrptedCipher);
     }
 
     return *this;
@@ -75,7 +75,7 @@ SafeVar& SafeVar::hash(Salt salt) {
     );
 
     if (!error) *this = std::move(dest);
-    else throw std::runtime_error("Failed to Hash");
+    else throw Error("Failed to Hash", ErrorCode::HashFail);
 
     return *this;
 }

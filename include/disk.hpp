@@ -5,6 +5,29 @@
 #include "configs.hpp"
 #include "dict.hpp"
 
+namespace disk {
+
+class Error : public config::GeneralError {
+    public:
+        using config::GeneralError::GeneralError;
+};
+
+enum ErrorCode {
+    WriteError = 1,
+    ReadError  = 2,
+    SeekError = 3,
+    TellError = 4,
+    FlushError = 5,
+
+    CreateError = 11,
+
+    TruncateError = 21,
+
+    WrongPreHeader = 31, 
+
+    CurruptFile = 41
+    
+};
 
 class DiskManager {
     private:
@@ -16,7 +39,7 @@ class DiskManager {
         void verify_pre_header();
         void cut_file_size();
         void write_vault_pre_header() {
-            if (!fwrite(&pre_header, sizeof(unsigned long long), 1, file)) throw std::runtime_error("Couldn't write pre-header to disk.");
+            if (!fwrite(&pre_header, sizeof(unsigned long long), 1, file)) throw Error("Couldn't write pre-header to disk.", WriteError);
         }
 
     public:
@@ -31,7 +54,7 @@ class DiskManager {
 
             if (create) {
                 file = fopen(config::vault_path, "wb+");
-                if (file == nullptr) throw std::runtime_error("Failed to found and create Vault file.");
+                if (file == nullptr) throw Error("Failed to found and create Vault file.", CreateError);
                 write_vault_pre_header();
             }
             else verify_pre_header();
@@ -56,3 +79,5 @@ class DiskManager {
 
         void write_vault_data(Dict &dict, crypto::SafeVar &master_key, crypto::SafeVar &session_key);
 };
+
+}

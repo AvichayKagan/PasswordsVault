@@ -1,6 +1,7 @@
 #include "shell.hpp"
 #include "safe_io.h"
 
+using namespace shell;
 
 int Shell::get_code() {
     int code;
@@ -22,7 +23,7 @@ void Shell::add() {
     }
 
     std::cout << "Please enter the password for " << arg.get() << ": " << std::flush;
-    if (safeIO::input(password.get(), config::max_password_len, true)) throw std::runtime_error("Failed to take password from the user.");
+    if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     
     vault.add_password(std::move(arg), std::move(password));
     
@@ -49,7 +50,7 @@ void Shell::run() {
 
     while (true) {
         std::cout << std::endl;
-        if (safeIO::input(input.get(), max_input_len, false)) throw std::runtime_error("Failed to read command from the user.");
+        if (safeIO::input(input.get(), max_input_len, false)) throw Error("Failed to read command from the user.");
 
         if (!this->parse(input.get(), &code)) continue;
 

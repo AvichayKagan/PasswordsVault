@@ -6,10 +6,10 @@
 int main() {
     try {
         crypto::crypt_init();
-        Vault vault;
+        vault::Vault vault;
         std::cout << "Auto-Opening the Vault..." << std::endl;
         vault.open_vault();
-        Shell shell(vault);
+        shell::Shell shell(vault);
         shell.run();
     }
     catch (const std::exception& e) {

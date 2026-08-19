@@ -2,12 +2,17 @@
 #include "vault.hpp"
 #include "crypt.hpp"
 
+namespace shell {
 
+class Error : public config::GeneralError {
+    public:
+        using config::GeneralError::GeneralError;
+};
 
 class Shell {
     private:
 
-        Vault &vault;
+        vault::Vault &vault;
         crypto::SafeVar command;
         crypto::SafeVar arg;
 
@@ -45,7 +50,7 @@ class Shell {
 
         void stats() {
             int size = vault.get_size();
-            int count = (size - DiskManager::header_size -DiskManager::pre_header_size) / (config::max_name_len + config::max_password_len);
+            int count = (size - disk::DiskManager::header_size -disk::DiskManager::pre_header_size) / (config::max_name_len + config::max_password_len);
 
             std::cout << "Total passwords in the vault: " << count << std::endl;
             std::cout << "Vault file size is: " << size << " Bytes." << std::endl;
@@ -83,7 +88,9 @@ class Shell {
         static constexpr int commands_has_arg[] = {false, false, true, false, true, true, false};
 
     public:
-        Shell(Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};
+        Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};
 
         void run();
 };
+
+}

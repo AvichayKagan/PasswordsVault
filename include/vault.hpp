@@ -9,13 +9,19 @@
 #include "crypt.hpp"
 #include "disk.hpp"
 
+namespace vault {
+
+class Error : public config::GeneralError {
+    public:
+        using config::GeneralError::GeneralError;
+};
 
 class Vault {
     private:
         crypto::Salt salt;
         crypto::SafeVar master_key;
         crypto::SafeVar session_key;
-        DiskManager disk_mang;
+        disk::DiskManager disk_mang;
         Dict dictionary;
         bool _is_open = false;
 
@@ -26,7 +32,7 @@ class Vault {
     public:
 
         Vault() :master_key(crypto::key_len), session_key(crypto::key_len) {
-            if (disk_mang.get_size() == DiskManager::pre_header_size) init_vault();
+            if (disk_mang.get_size() == disk::DiskManager::pre_header_size) init_vault();
 
             disk_mang.read_vault_header(this->salt, this->master_key);
         }
@@ -62,3 +68,5 @@ class Vault {
 
         bool is_open() { return _is_open; }
 };
+
+}

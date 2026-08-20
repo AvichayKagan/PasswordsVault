@@ -19,7 +19,7 @@ unsigned char* crypto::random(unsigned char *target, size_t len) {
     return target;
 }
 
-SafeVar& SafeVar::encrypto(Key key) {
+void SafeVar::encrypto(Key key) {
     unsigned long long dummy;
     randombytes_buf(ptr + size - nonce_len, nonce_len); // generate the nounce
 
@@ -30,11 +30,9 @@ SafeVar& SafeVar::encrypto(Key key) {
         NULL, 0, NULL, 
         ptr + size - nonce_len, key // nounce and key
     );
-
-    return *this;
 }
 
-SafeVar& SafeVar::decrypto(Key key, bool no_corrupt) {
+void SafeVar::decrypto(Key key, bool no_corrupt) {
     unsigned long long dummy;
     SafeVar backup = *this;
 
@@ -54,8 +52,6 @@ SafeVar& SafeVar::decrypto(Key key, bool no_corrupt) {
         }
         throw Error("Decryptoion failed: corrupted cipher.", ErrorCode::CurrptedCipher);
     }
-
-    return *this;
 }
 
 

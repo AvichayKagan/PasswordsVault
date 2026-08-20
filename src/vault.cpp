@@ -4,17 +4,21 @@
 
 using namespace vault;
 
-void Vault::sudo(const std::function<void()>& func) {  // make here way to quit (and also try again?)
+bool Vault::sudo(const std::function<void()>& func) {  // make here way to quit (and also try again?)
     crypto::SafeVar password(config::max_password_len);
     bool master_decrypted = false;
 
     try {
-        std::cout << "Please enter the master password to continue with this operation: " << std::flush;
         if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.");
         password.hash(salt);
         master_key.decrypto(password.get(), true);
         master_decrypted = true;
         func();
+    }
+    catch (const crypto::Error& e) {
+        if (master_decrypted) master_key.encrypto(password.get());
+        if (e.code() == crypto::IncorrectPassword) return false;
+        throw;
     }
     catch (...) {
         if (master_decrypted) master_key.encrypto(password.get());
@@ -22,27 +26,26 @@ void Vault::sudo(const std::function<void()>& func) {  // make here way to quit 
     }
 
     master_key.encrypto(password.get());
+    return true;
 }
 
-void Vault::open_vault() {
-    while (true) {
-        // init session key
-        session_key.random();
+bool Vault::open_vault() {
+    // init session key
+    session_key.random();
 
-        // init the dictionary
-        try {
+    // init the dictionary
+    try {
+        _is_open = 
             this->sudo([this]() {
                 disk_mang.read_vault_data(dictionary, master_key, session_key);
             });
-        }
-        catch (const std::exception& e) {
-            dictionary.empty();
-            throw;
-        }
-
-        _is_open = true;
-        break;
     }
+    catch (...) { 
+        dictionary.empty(); 
+        throw;
+    }
+
+    return _is_open;
 }
 
 
@@ -61,35 +64,34 @@ void Vault::init_vault() {
     disk_mang.write_vault_header(salt, master_key);
 }
 
-void Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password) {
-    this->sudo([&]() {
-        password.encrypto(session_key.get());
-        Dict::Node *added_node = this->dictionary.append_node(std::move(name), std::move(password));
-        try {
-            this->disk_mang.write_vault_data(dictionary, master_key, session_key); // make sure it wont corrupt the data!
-        }
-        catch (...) {
-            this->dictionary.delete_node(added_node, false);
-            throw;
-        }
-    });
+bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password) {
+    return
+        this->sudo([&]() {
+            password.encrypto(session_key.get());
+            Dict::Node *added_node = this->dictionary.append_node(std::move(name), std::move(password));
+            try {
+                this->disk_mang.write_vault_data(dictionary, master_key, session_key); // make sure it wont corrupt the data!
+            }
+            catch (...) {
+                this->dictionary.delete_node(added_node, false);
+                throw;
+            }
+        });
 }
 
 bool Vault::del_password(crypto::SafeVar &name) {
     Dict::Node *target = this->dictionary.search((char *)name.get());
-    if (target == nullptr) {
-        return false;
-    }
-    this->sudo([&]() {
-        std::unique_ptr<Dict::Node> deleted_node = this->dictionary.delete_node(target, true);
-        try {
-            this->disk_mang.write_vault_data(dictionary, master_key, session_key);
-        }
-        catch (...) {
-            this->dictionary.append_node_raw(std::move(deleted_node));
-            throw;
-        }
-    });
+    if (target == nullptr) throw std::runtime_error("ASSERT ERROR");
 
-    return true;
+    return
+        this->sudo([&]() {
+            std::unique_ptr<Dict::Node> deleted_node = this->dictionary.delete_node(target, true);
+            try {
+                this->disk_mang.write_vault_data(dictionary, master_key, session_key);
+            }
+            catch (...) {
+                this->dictionary.append_node_raw(std::move(deleted_node));
+                throw;
+            }
+        });
 }

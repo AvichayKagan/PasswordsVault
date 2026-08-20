@@ -106,9 +106,9 @@ namespace crypto {
                 return *this;
             }
             
-            SafeVar &encrypto(Key key);
+            void encrypto(Key key);
 
-            SafeVar &decrypto(Key key, bool no_corrupt);
+            void decrypto(Key key, bool no_corrupt);
 
             SafeVar &hash(Salt salt);
     };

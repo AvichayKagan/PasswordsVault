@@ -16,28 +16,31 @@ class Shell {
         crypto::SafeVar command;
         crypto::SafeVar arg;
 
+        // internal helpers
+
+        bool parse(unsigned char *input, int *code);
 
         int get_code();
 
         void reset() { arg.memzero(); command.memzero(); }
 
-        bool is_open() { 
-            if (vault.is_open()) return true;
-            std::cout << "Cannot complete the operation, the vault is closed, please type 'open' to open it." << std::endl;
-            return false;
-        }
+        // vault user operations
 
-        void close() { 
-            vault.close_vault();
-            std::cout << "Vault closed succesfully. Use 'open' to reopen it." << std::endl;
-        }
+       // sudo
 
         void open() { 
-            vault.open_vault();
-            std::cout << "Vault opened succesfully." << std::endl;
+            std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+            if (vault.open_vault()) {
+                std::cout << "Vault opened succesfully." << std::endl;
+            }
+            else std::cout << "Incorrect Master Password. Please type 'open' to try again." << std::endl;
         }
 
         void add();
+
+        void del();
+
+        // non sudo
 
         void list() { 
             if (vault.is_empty()) {
@@ -56,18 +59,13 @@ class Shell {
             std::cout << "Vault file size is: " << size << " Bytes." << std::endl;
         }
 
-        
-        void del() {
-            if (vault.del_password(arg)) {
-                std::cout << arg.get() << " has been deleted from the vault." << std::endl;
-            }
-            else std::cout << "Cannot delete '"<< arg.get() << "' as it doesn't exists in the vault." << std::endl;
+         void close() { 
+            vault.close_vault();
+            std::cout << "Vault closed succesfully. Use 'open' to reopen it." << std::endl;
         }
 
 
-        bool parse(unsigned char *input, int *code);
-
-
+        // static constexpr data
 
         static constexpr const char * const commands[] = {"open", "close", "add", "list", "show", "del", "stats", nullptr};
 
@@ -91,6 +89,14 @@ class Shell {
         Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};
 
         void run();
+
+        void open_public() { 
+            std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+            if (vault.open_vault()) {
+                std::cout << "Vault opened succesfully." << std::endl;
+            }
+            else std::cout << "Incorrect Master Password. Please type 'open' in the Shell to try again." << std::endl;
+        }
 };
 
 }

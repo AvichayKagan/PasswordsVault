@@ -25,9 +25,29 @@ void Shell::add() {
     std::cout << "Please enter the password for " << arg.get() << ": " << std::flush;
     if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     
-    vault.add_password(crypto::SafeVar(arg), std::move(password));
+
+    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    while (!vault.add_password(crypto::SafeVar(arg), std::move(password))) {
+        std::cout << "Incorrect Master Password. Please try again: " << std::flush;
+        // exit the loop somehow
+    }
 
     std::cout << "password has been added to the vault." << std::endl;
+}
+
+void Shell::del() {
+    if (!vault.exists(arg)) {
+        std::cout << "Cannot delete '"<< arg.get() << "' as it doesn't exists in the vault." << std::endl;
+        return;
+    }
+
+    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    while (!vault.del_password(arg)) {
+        std::cout << "Incorrect Master Password. Please try again: " << std::flush;
+        // exit the loop somehow
+    }
+    
+    std::cout << arg.get() << " has been deleted from the vault." << std::endl;
 }
 
 void Shell::show() {
@@ -67,8 +87,11 @@ void Shell::run() {
             std::cout << std::endl;
             (this->*operations[code])(); // execute the command
         } 
+        catch (const config::GeneralError& e) {
+            std::cerr << "Error: Could not complete opertation: " << e.what() << "(code "<< e.code() << ")" << std::endl;
+        }
         catch (const std::exception& e) {
-            std::cerr << "Fatal Error: Could not complete opertation: " << e.what() << std::endl;
+            std::cerr << "Error: Could not complete opertation: " << e.what() << std::endl;
         }
 
         this->reset();

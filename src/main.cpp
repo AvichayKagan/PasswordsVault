@@ -7,9 +7,9 @@ int main() {
     try {
         crypto::crypt_init();
         vault::Vault vault;
-        std::cout << "Auto-Opening the Vault..." << std::endl;
-        vault.open_vault();
         shell::Shell shell(vault);
+        std::cout << "Auto-Opening the Vault..." << std::endl;
+        shell.open_public();
         shell.run();
     }
     catch (const std::exception& e) {

@@ -86,7 +86,7 @@ void DiskManager::read_vault_data(Dict &dict, crypto::SafeVar &master_key, crypt
 
         // read the name
         if (fread(name.get(), 1, read_len_name, file) != read_len_name) break;
-        name.decrypto(master_key.get(), false);
+        name.decrypto(master_key.get(), false); // throw error on re-opening!
 
         // read the password
         if (fread(password.get(), 1, read_len_pass, file) != read_len_pass) break;

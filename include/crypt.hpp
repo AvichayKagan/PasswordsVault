@@ -101,6 +101,21 @@ namespace crypto {
 
             void memzero() { sodium_memzero(ptr, size); }
 
+            // never use on encrypted data
+            void realloc(size_t new_size) { 
+                size_t total_new_size = new_size + encryptoion_buff_len;
+                
+                unsigned char *new_ptr = (unsigned char *)sodium_malloc(total_new_size);
+                if (new_ptr == nullptr) throw std::bad_alloc();
+
+                size_t copy_len = (total_new_size < size) ? new_size : size - encryptoion_buff_len;
+                std::memcpy(new_ptr, ptr, copy_len);
+
+                sodium_free(ptr);
+                size = total_new_size;
+                ptr = new_ptr;
+            }
+
             SafeVar &random() { 
                 randombytes(ptr, size - encryptoion_buff_len); 
                 return *this;

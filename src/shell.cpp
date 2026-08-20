@@ -16,18 +16,20 @@ int Shell::get_code() {
 
 void Shell::add() {
     crypto::SafeVar password(config::max_password_len);
+    crypto::SafeVar name = arg;
+    name.realloc(config::max_name_len);
 
-    if (vault.exists(arg)) {
-        std::cout << "'" << arg.get() << "' already exists in the vault. you can change its password using 'change' or delete it using 'del'." << std::endl;
+    if (vault.exists(name)) {
+        std::cout << "'" << name.get() << "' already exists in the vault. you can change its password using 'change' or delete it using 'del'." << std::endl;
         return;
     }
 
-    std::cout << "Please enter the password for " << arg.get() << ": " << std::flush;
+    std::cout << "Please enter the password for " << name.get() << ": " << std::flush;
     if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     
 
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
-    while (!vault.add_password(crypto::SafeVar(arg), std::move(password))) {
+    while (!vault.add_password(std::move(name), std::move(password))) {
         std::cout << "Incorrect Master Password. Please try again: " << std::flush;
         // exit the loop somehow
     }

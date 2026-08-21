@@ -29,12 +29,17 @@ void Shell::add() {
     
 
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
-    while (!vault.add_password(std::move(name), std::move(password))) {
-        std::cout << "Incorrect Master Password. Please try again: " << std::flush;
-        // exit the loop somehow
-    }
+    while (true) {
+        crypto::SafeVar master_password(config::max_password_len);
+        if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (*master_password.get() == '\0') break;
 
-    std::cout << "password has been added to the vault." << std::endl;
+        if (vault.add_password(std::move(name), std::move(password), master_password)) {
+            std::cout << "Password has been added to the vault." << std::endl;
+            break;
+        }
+        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+    }
 }
 
 void Shell::del() {
@@ -44,23 +49,31 @@ void Shell::del() {
     }
 
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
-    while (!vault.del_password(arg)) {
-        std::cout << "Incorrect Master Password. Please try again: " << std::flush;
-        // exit the loop somehow
+
+    while (true) {
+        crypto::SafeVar master_password(config::max_password_len);
+        if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (*master_password.get() == '\0') break;
+        
+        if (vault.del_password(arg, master_password)) {
+            std::cout << arg.get() << " has been deleted from the vault." << std::endl;
+            break;
+        }
+        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
     }
-    
-    std::cout << arg.get() << " has been deleted from the vault." << std::endl;
 }
 
 void Shell::show() {
     crypto::SafeVar password = vault.search(arg);
+    char *viewed_password;
 
     if (password.get() == nullptr) {
         std::cout << "No such name '"<< arg.get() << "' exists in the vault. you can add it using 'add'." << std::endl;
         return;
     }
 
-    std::cout << "The password for '" << arg.get() << "' is: " << password.get() << "   ,Please press enter to delete this massage." << std::endl;
+    // must securley print this!
+    std::cout << "The password for '" << arg.get() << "' is: '" << password.get() << "', Press any key to delete this massage, or 'v' to copy the password." << std::endl;
 }
 
 

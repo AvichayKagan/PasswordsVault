@@ -4,32 +4,30 @@
 
 using namespace vault;
 
-bool Vault::sudo(const std::function<void()>& func) {  // make here way to quit (and also try again?)
-    crypto::SafeVar password(config::max_password_len);
+bool Vault::sudo(const std::function<void()>& func, crypto::SafeVar &master_password) { 
     bool master_decrypted = false;
-
+    
     try {
-        if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.");
-        password.hash(salt);
-        master_key.decrypto(password.get(), true);
+        master_password.hash(salt);
+        master_key.decrypto(master_password.get(), true);
         master_decrypted = true;
         func();
     }
     catch (const crypto::Error& e) {
-        if (master_decrypted) master_key.encrypto(password.get());
+        if (master_decrypted) master_key.encrypto(master_password.get());
         if (e.code() == crypto::IncorrectPassword) return false;
         throw;
     }
     catch (...) {
-        if (master_decrypted) master_key.encrypto(password.get());
+        if (master_decrypted) master_key.encrypto(master_password.get());
         throw;
     }
 
-    master_key.encrypto(password.get());
+    master_key.encrypto(master_password.get());
     return true;
 }
 
-bool Vault::open_vault() {
+bool Vault::open_vault(crypto::SafeVar &master_passowrd) {
     // init session key
     session_key.random();
 
@@ -38,7 +36,7 @@ bool Vault::open_vault() {
         _is_open = 
             this->sudo([this]() {
                 disk_mang.read_vault_data(dictionary, master_key, session_key);
-            });
+            }, master_passowrd);
     }
     catch (...) { 
         dictionary.empty(); 
@@ -64,7 +62,7 @@ void Vault::init_vault() {
     disk_mang.write_vault_header(salt, master_key);
 }
 
-bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password) {
+bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &master_passowrd) {
     return
         this->sudo([&]() {
             password.encrypto(session_key.get());
@@ -76,10 +74,10 @@ bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password) {
                 this->dictionary.delete_node(added_node, false);
                 throw;
             }
-        });
+        }, master_passowrd);
 }
 
-bool Vault::del_password(crypto::SafeVar &name) {
+bool Vault::del_password(crypto::SafeVar &name, crypto::SafeVar &master_passowrd) {
     Dict::Node *target = this->dictionary.search((char *)name.get());
     if (target == nullptr) throw std::runtime_error("ASSERT ERROR");
 
@@ -93,5 +91,5 @@ bool Vault::del_password(crypto::SafeVar &name) {
                 this->dictionary.append_node_raw(std::move(deleted_node));
                 throw;
             }
-        });
+        }, master_passowrd);
 }

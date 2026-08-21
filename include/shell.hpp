@@ -1,6 +1,7 @@
 #include <iostream>
 #include "vault.hpp"
 #include "crypt.hpp"
+#include "safe_io.h"
 
 namespace shell {
 
@@ -29,8 +30,10 @@ class Shell {
        // sudo
 
         void open() { 
+            crypto::SafeVar master_password(config::max_password_len);
             std::cout << "Please enter the master password to continue with this operation: " << std::flush;
-            if (vault.open_vault()) {
+            if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+            if (vault.open_vault(master_password)) {
                 std::cout << "Vault opened succesfully." << std::endl;
             }
             else std::cout << "Incorrect Master Password. Please type 'open' to try again." << std::endl;
@@ -91,8 +94,10 @@ class Shell {
         void run();
 
         void open_public() { 
+            crypto::SafeVar master_password(config::max_password_len);
             std::cout << "Please enter the master password to continue with this operation: " << std::flush;
-            if (vault.open_vault()) {
+            if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+            if (vault.open_vault(master_password)) {
                 std::cout << "Vault opened succesfully." << std::endl;
             }
             else std::cout << "Incorrect Master Password. Please type 'open' in the Shell to try again." << std::endl;

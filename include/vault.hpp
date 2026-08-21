@@ -26,7 +26,7 @@ class Vault {
         bool _is_open = false;
 
 
-        bool sudo(const std::function<void()>& func);
+        bool sudo(const std::function<void()>& func, crypto::SafeVar &password);
         void init_vault();
     
     public:
@@ -37,13 +37,13 @@ class Vault {
             disk_mang.read_vault_header(this->salt, this->master_key);
         }
 
-        bool open_vault();
+        bool open_vault(crypto::SafeVar &master_passowrd);
 
         void close_vault() { this->dictionary.empty(); _is_open = false; };
 
-        bool add_password(crypto::SafeVar &&name, crypto::SafeVar &&password);
+        bool add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &master_passowrd);
 
-        bool del_password(crypto::SafeVar &name);
+        bool del_password(crypto::SafeVar &name, crypto::SafeVar &master_passowrd);
 
         bool exists(crypto::SafeVar &name) { return (dictionary.search((char *)name.get()) == nullptr) ? false : true; }
 
@@ -63,7 +63,7 @@ class Vault {
 
         void list_all() {
             for (Dict::Node *i = dictionary.get_head(); i != nullptr; i = i->get_next() ) {
-                std::cout << i->get_name().get() << std::endl;
+                std::cout << i->get_name().get() << std::endl; // must safely print this!
             }
         }
 

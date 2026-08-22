@@ -15,6 +15,7 @@ Dict::Node *Dict::append_node_raw(std::unique_ptr<Node> new_node) {
         tail->next = std::move(new_node);
         tail = tail->next.get();
     }
+    node_count++;
     
     return tail;
 }
@@ -43,6 +44,7 @@ std::unique_ptr<Dict::Node> Dict::delete_node(Node *node, bool catch_) {
         node->next->prev = node->prev;
         node->prev->next = std::move(node->next);
     }
+    node_count--;
 
     return catch_ ? std::move(ret) : nullptr;
 }

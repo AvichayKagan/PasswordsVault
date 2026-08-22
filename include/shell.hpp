@@ -56,7 +56,7 @@ class Shell {
 
         void stats() {
             int size = vault.get_size();
-            int count = (size - disk::DiskManager::header_size -disk::DiskManager::pre_header_size) / (config::max_name_len + config::max_password_len);
+            int count = vault.get_count();
 
             std::cout << "Total passwords in the vault: " << count << std::endl;
             std::cout << "Vault file size is: " << size << " Bytes." << std::endl;

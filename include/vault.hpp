@@ -61,6 +61,8 @@ class Vault {
 
         long long get_size() { return disk_mang.get_size(); }
 
+        unsigned int get_count() { return dictionary.get_count(); }
+
         void list_all() {
             for (Dict::Node *i = dictionary.get_head(); i != nullptr; i = i->get_next() ) {
                 std::cout << i->get_name().get() << std::endl; // must safely print this!

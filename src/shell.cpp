@@ -65,7 +65,6 @@ void Shell::del() {
 
 void Shell::show() {
     crypto::SafeVar password = vault.search(arg);
-    char *viewed_password;
 
     if (password.get() == nullptr) {
         std::cout << "No such name '"<< arg.get() << "' exists in the vault. you can add it using 'add'." << std::endl;

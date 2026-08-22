@@ -13,6 +13,7 @@ class Dict {
     private:
         std::unique_ptr<Node> head;
         Node *tail;
+        unsigned int node_count = 0;
     
     public:
         Dict() { tail = nullptr; } // head init to nullptr by default as unique pointer
@@ -30,7 +31,9 @@ class Dict {
 
         Node *get_head() { return head.get(); }
 
-        void empty() { head.reset(); tail = nullptr; } // must not except
+        unsigned int get_count() { return node_count; }
+
+        void empty() { head.reset(); tail = nullptr; node_count = 0; } // must not except
 };
 
 

@@ -51,15 +51,20 @@ void Vault::init_vault() {
     crypto::SafeVar password(config::max_password_len);
     crypto::Salt salt;
     crypto::SafeVar master_key(crypto::key_len);
+    master_key.random();
+    crypto::SafeVar master_key_enc = master_key;
 
     std::cout << "Please choose and enter a master password for the new vault: " << std::flush;
     if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.");
     password.hash(crypto::random(salt, crypto::salt_len));
-    master_key.random().encrypto(password.get());
+    master_key_enc.encrypto(password.get());
     password.memzero();
 
     // write the header - salt and master key
-    disk_mang.write_vault_header(salt, master_key);
+    disk_mang.write_vault_header(salt, master_key_enc);
+    // write empty data - passing dummy session key
+    crypto::SafeVar dummy;
+    disk_mang.write_vault_data(dictionary, master_key, dummy);
 }
 
 bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &master_passowrd) {

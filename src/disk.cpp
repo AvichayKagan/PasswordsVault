@@ -74,53 +74,57 @@ void DiskManager::write_vault_header(crypto::Salt salt, crypto::SafeVar &master_
 
 
 void DiskManager::read_vault_data(Dict &dict, crypto::SafeVar &master_key, crypto::SafeVar &session_key) {
-    size_t read_len_name = config::max_name_len + crypto::SafeVar::encryptoion_buff_len;
-    size_t read_len_pass = config::max_password_len + crypto::SafeVar::encryptoion_buff_len;
+    size_t read_len = this->get_size() - pre_header_size - header_size;
+    crypto::SafeVar vault_data(read_len - crypto::SafeVar::encryptoion_buff_len);
+    size_t i = 0;
 
-    // seek  end of header
+    // read the data to buffer and decrypt
     if (fseek(file, pre_header_size + header_size, SEEK_SET) != 0) throw Error("Failed to seek the header location in the vault file.", SeekError);
+    if (fread(vault_data.get(), 1, read_len, file) != read_len) throw Error("Failed to read vault data.", ReadError);
+    vault_data.decrypto(master_key.get(), false);
 
-    while (true) {
+    // load the dictionary
+    while (i < read_len - crypto::SafeVar::encryptoion_buff_len) {
         crypto::SafeVar name(config::max_name_len);
         crypto::SafeVar password(config::max_password_len);
 
-        // read the name
-        if (fread(name.get(), 1, read_len_name, file) != read_len_name) break;
-        name.decrypto(master_key.get(), false);
+        // set the name
+        std::memcpy(name.get(), vault_data.get() + i, config::max_name_len);
+        i += config::max_name_len;
 
-        // read the password
-        if (fread(password.get(), 1, read_len_pass, file) != read_len_pass) break;
-        password.decrypto(master_key.get(), false);
+        // set the password
+        std::memcpy(password.get(), vault_data.get() + i, config::max_password_len);
         password.encrypto(session_key.get());
+        i += config::max_password_len;
 
         dict.append_node(std::move(name), std::move(password));
     }
-
-    if (!feof(file)) throw Error("Failed to read vault data.", CurruptFile);
 }
 
 void DiskManager::write_vault_data(Dict &dict, crypto::SafeVar &master_key, crypto::SafeVar &session_key) { // need to ahndle failure and disk corruption
-    crypto::SafeVar name;
-    crypto::SafeVar password;
-    size_t read_len_name = config::max_name_len + crypto::SafeVar::encryptoion_buff_len;
-    size_t read_len_pass = config::max_password_len + crypto::SafeVar::encryptoion_buff_len;
-
-    // seek  end of header
-    if (fseek(file, pre_header_size + header_size, SEEK_SET) != 0) throw Error("Failed to seek the header location in the vault file.", SeekError);
+    size_t write_len = dict.get_count() * (config::max_name_len + config::max_password_len);
+    crypto::SafeVar vault_data(write_len);
+    int j = 0;
     
-    for (Dict::Node *i = dict.get_head(); i != nullptr; i = i->get_next() ) {
-        name = i->get_name();
-        password = i->get_password();
+    // load the buffer
+    for (Dict::Node *i = dict.get_head(); i != nullptr; i = i->get_next()) {
+        crypto::SafeVar& password = i->get_password();
 
         // write the name
-        name.encrypto(master_key.get());
-        if (fwrite(name.get(), 1, read_len_name, file) != read_len_name) throw Error("Failed to write vault data.", WriteError);
+        std::memcpy(vault_data.get() + j, i->get_name().get(), config::max_name_len);
+        j += config::max_name_len;
 
         // write the password
         password.decrypto(session_key.get(), false);
-        password.encrypto(master_key.get());
-        if (fwrite(password.get(), 1, read_len_pass, file) != read_len_pass) throw Error("Failed to write vault data.", WriteError);
+        std::memcpy(vault_data.get() + j, password.get(), config::max_password_len);
+        j += config::max_password_len;
+        password.encrypto(session_key.get());
     }
+    vault_data.encrypto(master_key.get());
+
+    // write the data
+    if (fseek(file, pre_header_size + header_size, SEEK_SET) != 0) throw Error("Failed to seek the header location in the vault file.", SeekError);
+    if (fwrite(vault_data.get(), 1, write_len + crypto::SafeVar::encryptoion_buff_len, file) != write_len + crypto::SafeVar::encryptoion_buff_len) throw Error("Failed to write vault data.", WriteError);
     
     this->cut_file_size();
 }

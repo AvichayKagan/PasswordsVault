@@ -101,11 +101,14 @@ void Shell::run() {
             std::cout << std::endl;
             (this->*operations[code])(); // execute the command
         } 
+        catch (const config::FatalError& e) {
+            throw;
+        }
         catch (const config::GeneralError& e) {
-            std::cerr << "Error: Could not complete opertation: " << e.what() << "(code "<< e.code() << ")" << std::endl;
+            std::cerr << "Error: Could not complete opertation: " << e.what() << " (MODULE: " << e.module() << ", CODE: "<< e.code() << ")" << '\n';
         }
         catch (const std::exception& e) {
-            std::cerr << "Error: Could not complete opertation: " << e.what() << std::endl;
+            std::cerr << "Error: Could not complete opertation: " << e.what() << '\n';
         }
 
         this->reset();

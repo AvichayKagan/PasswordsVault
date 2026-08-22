@@ -1,6 +1,7 @@
 #pragma once
 
 #include <exception>
+#include <filesystem>
 #include "crypt.hpp"
 #include "configs.hpp"
 #include "dict.hpp"
@@ -8,8 +9,9 @@
 namespace disk {
 
 class Error : public config::GeneralError {
-    public:
-        using config::GeneralError::GeneralError;
+public:
+    explicit Error(const std::string& message, int errorCode = 1) 
+        : config::GeneralError(message, "DISK", errorCode) {}
 };
 
 enum ErrorCode {
@@ -20,6 +22,7 @@ enum ErrorCode {
     FlushError = 5,
 
     CreateError = 11,
+    OpenError = 12,
 
     TruncateError = 21,
 
@@ -37,7 +40,7 @@ class DiskManager {
         static constexpr unsigned long long pre_header  = 0xDB1D26A4734EB42CLL;
 
         void verify_pre_header();
-        void cut_file_size();
+        void atomic_write_data(unsigned char *data, size_t len);
         void write_vault_pre_header() {
             if (!fwrite(&pre_header, sizeof(unsigned long long), 1, file)) throw Error("Couldn't write pre-header to disk.", WriteError);
         }
@@ -45,9 +48,14 @@ class DiskManager {
     public:
         static constexpr int pre_header_size = 8;
         static constexpr int header_size = crypto::salt_len + crypto::SafeVar::nonce_len + crypto::key_len + crypto::SafeVar::auth_tag_len;
+        static constexpr int pre_plus_header_size = pre_header_size + header_size;
 
         DiskManager() {
             int create = 0;
+            std::error_code ec;
+
+            // clean up orphaned temp file
+            std::filesystem::remove(config::vault_path_temp, ec);
 
             file = fopen(config::vault_path, "rb+");
             if (file == nullptr) create = 1;

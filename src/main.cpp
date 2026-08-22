@@ -12,8 +12,15 @@ int main() {
         shell.open_public();
         shell.run();
     }
+    catch (const config::GeneralError& e) {
+        std::cerr << "Fatal Error: " << e.what() << " (MODULE: " << e.module() << ", CODE: "<< e.code() << ")" << '\n';
+    }
     catch (const std::exception& e) {
-        std::cout << "Fatal Error: " << e.what() << std::endl;
+        std::cerr << "Fatal Error: " << e.what() << '\n';
+        return 1;
+    }
+    catch (...) {
+        std::cerr << "Unexpected Fatal Error" << '\n';
         return 1;
     }
 

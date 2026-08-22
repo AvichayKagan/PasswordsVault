@@ -7,8 +7,9 @@ namespace shell {
 
 class Error : public config::GeneralError {
     public:
-        using config::GeneralError::GeneralError;
-};
+        explicit Error(const std::string& message, int errorCode = 1) 
+            : config::GeneralError(message, "SHELL", errorCode) {}
+    };
 
 class Shell {
     private:

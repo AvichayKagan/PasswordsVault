@@ -30,7 +30,11 @@ class Vault::Sudo {
             if (sudo) vault.master_key.encrypto(master_password.get());
         }
 
-        // rule of 5!
+        Sudo(const Sudo&) = delete;
+        Sudo& operator=(const Sudo&) = delete;
+        Sudo(Sudo&&) = delete;
+        Sudo& operator=(Sudo&&) = delete;
+
 
         explicit operator bool() { return sudo; }
 };

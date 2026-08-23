@@ -13,6 +13,25 @@ int Shell::get_code() {
     return -1; // code for none
 }
 
+void Shell::help() {
+    std::cout << "Available commands:\n"
+              << "-------------------\n"
+              << "  open          - Open and unlock the vault\n"
+              << "  close         - Close and lock the vault\n"
+              << "  add    [name] - Add a new password (flags: --gen)\n"
+              << "  del    [name] - Delete an existing entry\n"
+              << "  chpass [name] - Change the password of an existing entry\n"
+              << "  rename [name] - Rename an entry\n"
+              << "  chmaster      - Change the vault's master password\n"
+              << "  list          - List all entry names in the vault\n"
+              << "  show   [name] - Show a password (flags: --copy)\n"
+              << "  search        - Search for entries by name\n" // update
+              << "  stats         - Show vault statistics and size\n"
+              << "  help          - Show this help menu\n"
+              << "  exit          - Safely exit the program\n"
+              << std::endl;
+}
+
 void Shell::open() { 
     crypto::SafeVar master_password(config::max_password_len);
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
@@ -172,7 +191,7 @@ void Shell::run() {
 
         if (!this->parse(input.get(), &code)) continue;
 
-        if (code != 0 && code != 2 && !vault.is_open()) { // 0  is code for open, 2 is code for exit
+        if (code != 0 && code != 2 && code != 3 && !vault.is_open()) { // 0  is code for open, 2 is code for exit, 3 is for help
             if (code == 1) { // 1 is code for close
                 std::cout << "The vault is already closed, please type 'open' to open it." << std::endl;
             }

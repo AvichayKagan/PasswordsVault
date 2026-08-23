@@ -43,25 +43,18 @@ class Dict::Node {
     private:
         std::unique_ptr<Node> next;
         Node *prev;
-        crypto::SafeVar password;
-        crypto::SafeVar name;
 
     public:
         friend class Dict;
 
+        crypto::SafeVar password;
+        crypto::SafeVar name;
+        
         Node(crypto::SafeVar &&password, crypto::SafeVar &&name) {
             this->password = std::move(password);
             this->name = std::move(name);
             this->next = nullptr;
             this->prev = nullptr;
-        }
-
-        crypto::SafeVar& get_name() { return this->name; }
-
-        crypto::SafeVar& get_password() { return this->password; }
-
-        void change_password(crypto::SafeVar& new_password) {
-            this->password = std::move(new_password);
         }
 
         Node *get_next() { return (this->next).get(); }

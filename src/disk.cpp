@@ -130,10 +130,10 @@ void DiskManager::write_vault_data(Dict &dict, crypto::SafeVar &master_key, cryp
     
     // load the buffer
     for (Dict::Node *i = dict.get_head(); i != nullptr; i = i->get_next()) {
-        crypto::SafeVar& password = i->get_password();
+        crypto::SafeVar& password = i->password;
 
         // write the name
-        std::memcpy(vault_data.get() + j, i->get_name().get(), config::max_name_len);
+        std::memcpy(vault_data.get() + j, i->name.get(), config::max_name_len);
         j += config::max_name_len;
 
         // write the password
@@ -145,7 +145,7 @@ void DiskManager::write_vault_data(Dict &dict, crypto::SafeVar &master_key, cryp
     vault_data.encrypto(master_key.get());
 
     // write the data
-    this->atomic_write_data(vault_data.get(), write_len + crypto::SafeVar::encryptoion_buff_len);
+    atomic_write_data(vault_data.get(), write_len + crypto::SafeVar::encryptoion_buff_len);
 }
 
 void DiskManager::atomic_write_data(unsigned char *data, size_t len) {

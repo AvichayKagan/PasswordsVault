@@ -132,6 +132,8 @@ void Shell::run() {
     crypto::SafeVar input(max_input_len);
     int code;
 
+    open();
+
     std::cout << "Shell is running, please enter commands to use the vault.." << std::endl;
 
     while (is_running) {

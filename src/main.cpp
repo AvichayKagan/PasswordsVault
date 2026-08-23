@@ -9,7 +9,6 @@ int main() {
         vault::Vault vault;
         shell::Shell shell(vault);
         std::cout << "Auto-Opening the Vault..." << std::endl;
-        shell.open_public();
         shell.run();
     }
     catch (const config::GeneralError& e) {

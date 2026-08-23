@@ -39,6 +39,7 @@ class Shell {
         void list();
         void show();
         void exit() { is_running = false; }
+        void help();
         void stats();
         void close();
 
@@ -47,9 +48,9 @@ class Shell {
         // add sudo boolean to that and DRY the sudo prompt in the shell implementation calls
         // add allowed when vault is closed boolean
 
-        static constexpr const char * const commands[] = {"open", "close", "exit", "add", "list", "show", "del", "stats", "chpass", "rename", nullptr};
-        // remainding are: help, chmaster, search
-        // flags: gen for passwrod gen and copy flag
+        static constexpr const char * const commands[] = {"open", "close", "exit", "help", "add", "list", "show", "del", "stats", "chpass", "rename", nullptr};
+        // remainding are: chmaster, search
+        // flags: gen for passwrod gen and copy flag, update help accordinally
 
         static constexpr int max_input_len = []() {
                 int max_len = 0;
@@ -64,8 +65,8 @@ class Shell {
         + config::max_name_len + config::max_password_len + 1; // 1 for null terminator
 
         using MethodPtr = void (Shell::*)();
-        static constexpr MethodPtr operations[] = {&Shell::open, &Shell::close, &Shell::exit, &Shell::add, &Shell::list, &Shell::show, &Shell::del, &Shell::stats, &Shell::chpass, &Shell::rename};
-        static constexpr int commands_has_arg[] = {false, false, false, true, false, true, true, false, true, true};
+        static constexpr MethodPtr operations[] = {&Shell::open, &Shell::close, &Shell::exit, &Shell::help, &Shell::add, &Shell::list, &Shell::show, &Shell::del, &Shell::stats, &Shell::chpass, &Shell::rename};
+        static constexpr int commands_has_arg[] = {false, false, false, false, true, false, true, true, false, true, true};
 
     public:
         Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};

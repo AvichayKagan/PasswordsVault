@@ -13,6 +13,36 @@ int Shell::get_code() {
     return -1; // code for none
 }
 
+void Shell::open() { 
+    crypto::SafeVar master_password(config::max_password_len);
+    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+    if (vault.open_vault(master_password)) {
+        std::cout << "Vault opened succesfully." << std::endl;
+    }
+    else std::cout << "Incorrect Master Password. Please type 'open' in the shell to try again." << std::endl;
+}
+
+void Shell::list() { 
+    if (vault.is_empty()) {
+        std::cout << "Vault is empty." << std::endl;
+    }
+    else vault.list_all(); 
+}
+
+void Shell::stats() {
+    int size = vault.get_size();
+    int count = vault.get_count();
+
+    std::cout << "Total passwords in the vault: " << count << std::endl;
+    std::cout << "Vault file size is: " << size << " Bytes." << std::endl;
+}
+
+void Shell::close() { 
+    vault.close_vault();
+    std::cout << "Vault closed succesfully. Use 'open' to reopen it." << std::endl;
+}
+
 
 void Shell::add() {
     crypto::SafeVar password(config::max_password_len);
@@ -142,7 +172,7 @@ void Shell::run() {
 
         if (!this->parse(input.get(), &code)) continue;
 
-        if (code != 0 && !vault.is_open()) { // 0  is code for open
+        if (code != 0 && code != 2 && !vault.is_open()) { // 0  is code for open, 2 is code for exit
             if (code == 1) { // 1 is code for close
                 std::cout << "The vault is already closed, please type 'open' to open it." << std::endl;
             }

@@ -92,6 +92,8 @@ class Shell {
     public:
         Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};
 
+        // add destructor? (to clsoe the vault)
+
         void run();
 
         void open_public() { 

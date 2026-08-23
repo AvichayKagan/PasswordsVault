@@ -17,6 +17,7 @@ class Error : public config::GeneralError {
             : config::GeneralError(message, "VAULT", errorCode) {}
 };
 
+
 class Vault {
     private:
         crypto::Salt salt;
@@ -26,9 +27,9 @@ class Vault {
         Dict dictionary;
         bool _is_open = false;
 
-
-        bool sudo(const std::function<void()>& func, crypto::SafeVar &password);
         void init_vault();
+        class Sudo;
+        Sudo acquire_sudo(crypto::SafeVar &&master_password);
     
     public:
 
@@ -42,9 +43,9 @@ class Vault {
 
         void close_vault() { this->dictionary.empty(); _is_open = false; };
 
-        bool add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &master_passowrd);
+        bool add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd);
 
-        bool del_password(crypto::SafeVar &name, crypto::SafeVar &master_passowrd);
+        bool del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowrd);
 
         bool exists(crypto::SafeVar &name) { return (dictionary.search((char *)name.get()) == nullptr) ? false : true; }
 

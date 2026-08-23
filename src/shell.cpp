@@ -34,7 +34,7 @@ void Shell::add() {
         if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
-        if (vault.add_password(std::move(name), std::move(password), master_password)) {
+        if (vault.add_password(std::move(name), std::move(password), std::move(master_password))) {
             std::cout << "Password has been added to the vault." << std::endl;
             break;
         }
@@ -55,7 +55,7 @@ void Shell::del() {
         if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
         
-        if (vault.del_password(arg, master_password)) {
+        if (vault.del_password(arg, std::move(master_password))) {
             std::cout << arg.get() << " has been deleted from the vault." << std::endl;
             break;
         }

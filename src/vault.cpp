@@ -120,3 +120,44 @@ bool Vault::del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowr
      
     return true;
 }
+
+bool Vault::change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd) {
+    Dict::Node *target = dictionary.search((char *)name.get());
+    if (target == nullptr) throw std::runtime_error("ASSERT ERROR");
+
+    auto sudo = acquire_sudo(std::move(master_passowrd));
+    if (!sudo) return false;
+
+    crypto::SafeVar old_password = target->password;
+    password.encrypto(session_key.get());
+    target->password = std::move(password);
+    try {
+        disk_mang.write_vault_data(dictionary, master_key, session_key);
+    }
+    catch (...) {
+        target->password = std::move(old_password);
+        throw;
+    }
+     
+    return true;
+}
+
+bool Vault::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypto::SafeVar &&master_passowrd) {
+     Dict::Node *target = dictionary.search((char *)name.get());
+    if (target == nullptr) throw std::runtime_error("ASSERT ERROR");
+
+    auto sudo = acquire_sudo(std::move(master_passowrd));
+    if (!sudo) return false;
+
+    crypto::SafeVar old_name = target->name;
+    target->name = std::move(new_name);
+    try {
+        disk_mang.write_vault_data(dictionary, master_key, session_key);
+    }
+    catch (...) {
+        target->name = std::move(old_name);
+        throw;
+    }
+     
+    return true;
+}

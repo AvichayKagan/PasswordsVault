@@ -47,6 +47,11 @@ class Vault {
 
         bool del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowrd);
 
+        bool change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd);
+
+        bool change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypto::SafeVar &&master_passowrd);
+
+
         bool exists(crypto::SafeVar &name) { return (dictionary.search((char *)name.get()) == nullptr) ? false : true; }
 
         crypto::SafeVar search(crypto::SafeVar &name) {
@@ -54,7 +59,7 @@ class Vault {
             crypto::SafeVar ret;
 
             if (node != nullptr) {
-                ret = node->get_password();
+                ret = node->password;
                 ret.decrypto(session_key.get(), false);
             }
 
@@ -67,7 +72,7 @@ class Vault {
 
         void list_all() {
             for (Dict::Node *i = dictionary.get_head(); i != nullptr; i = i->get_next() ) {
-                std::cout << i->get_name().get() << std::endl; // must safely print this!
+                std::cout << i->name.get() << std::endl; // must safely print this!
             }
         }
 

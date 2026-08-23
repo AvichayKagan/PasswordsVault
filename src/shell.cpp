@@ -76,13 +76,65 @@ void Shell::show() {
 }
 
 
+void Shell::chpass() {
+    crypto::SafeVar password(config::max_password_len);
+
+    if (!vault.exists(arg)) {
+        std::cout << "No entry '"<< arg.get() << "' exists in the vault." << std::endl;
+        return;
+    }
+
+    std::cout << "Please enter the new password for " << arg.get() << ": " << std::flush;
+    if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
+    
+
+    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    while (true) {
+        crypto::SafeVar master_password(config::max_password_len);
+        if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (*master_password.get() == '\0') break;
+
+        if (vault.change_password(arg, std::move(password), std::move(master_password))) {
+            std::cout << "Password has been change successfully." << std::endl;
+            break;
+        }
+        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+    }
+}
+
+void Shell::rename() {
+    crypto::SafeVar new_name(config::max_name_len);
+
+    if (!vault.exists(arg)) {
+        std::cout << "No entry '"<< arg.get() << "' exists in the vault." << std::endl;
+        return;
+    }
+
+    std::cout << "Please enter the new name for " << arg.get() << ": " << std::flush;
+    if (safeIO::input(new_name.get(), config::max_name_len, false)) throw Error("Failed to take password from the user.");
+    
+
+    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    while (true) {
+        crypto::SafeVar master_password(config::max_password_len);
+        if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (*master_password.get() == '\0') break;
+
+        if (vault.change_name(arg, std::move(new_name), std::move(master_password))) {
+            std::cout << "Name has been change successfully." << std::endl;
+            break;
+        }
+        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+    }
+}
+
 void Shell::run() {
     crypto::SafeVar input(max_input_len);
     int code;
 
     std::cout << "Shell is running, please enter commands to use the vault.." << std::endl;
 
-    while (true) {
+    while (is_running) {
         std::cout << std::endl;
         if (safeIO::input(input.get(), max_input_len, false)) throw Error("Failed to read command from the user.");
 

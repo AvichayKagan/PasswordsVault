@@ -13,10 +13,10 @@ class Error : public config::GeneralError {
 
 class Shell {
     private:
-
         vault::Vault &vault;
         crypto::SafeVar command;
         crypto::SafeVar arg;
+        bool is_running = true;
 
         // internal helpers
 
@@ -44,6 +44,10 @@ class Shell {
 
         void del();
 
+        void chpass();
+
+        void rename();
+
         // non sudo
 
         void list() { 
@@ -54,6 +58,8 @@ class Shell {
         }
 
         void show();
+
+        void exit() { is_running = false; }
 
         void stats() {
             int size = vault.get_size();
@@ -69,9 +75,12 @@ class Shell {
         }
 
 
-        // static constexpr data
+        // static constexpr data (centrelize in struct instead of multiple arrays)
+        // add sudo boolean to that and DRY the sudo prompt in the shell implementation calls
 
-        static constexpr const char * const commands[] = {"open", "close", "add", "list", "show", "del", "stats", nullptr};
+        static constexpr const char * const commands[] = {"open", "close", "add", "list", "show", "del", "stats", "chpass", "rename", "exit", nullptr};
+        // remainding are: help, chmaster, search
+        // flags: gen for passwrod gen and copy flag
 
         static constexpr int max_input_len = []() {
                 int max_len = 0;
@@ -86,8 +95,8 @@ class Shell {
         + config::max_name_len + config::max_password_len + 1; // 1 for null terminator
 
         using MethodPtr = void (Shell::*)();
-        static constexpr MethodPtr operations[] = {&Shell::open, &Shell::close, &Shell::add, &Shell::list, &Shell::show, &Shell::del, &Shell::stats};
-        static constexpr int commands_has_arg[] = {false, false, true, false, true, true, false};
+        static constexpr MethodPtr operations[] = {&Shell::open, &Shell::close, &Shell::add, &Shell::list, &Shell::show, &Shell::del, &Shell::stats, &Shell::chpass, &Shell::rename, &Shell::exit};
+        static constexpr int commands_has_arg[] = {false, false, true, false, true, true, false, true, true, false};
 
     public:
         Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};

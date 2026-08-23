@@ -28,57 +28,26 @@ class Shell {
 
         // vault user operations
 
-       // sudo
-
-        void open() { 
-            crypto::SafeVar master_password(config::max_password_len);
-            std::cout << "Please enter the master password to continue with this operation: " << std::flush;
-            if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
-            if (vault.open_vault(master_password)) {
-                std::cout << "Vault opened succesfully." << std::endl;
-            }
-            else std::cout << "Incorrect Master Password. Please type 'open' in the shell to try again." << std::endl;
-        }
-
+        // sudo
+        void open();
         void add();
-
         void del();
-
         void chpass();
-
         void rename();
 
         // non sudo
-
-        void list() { 
-            if (vault.is_empty()) {
-                std::cout << "Vault is empty." << std::endl;
-            }
-            else vault.list_all(); 
-        }
-
+        void list();
         void show();
-
         void exit() { is_running = false; }
-
-        void stats() {
-            int size = vault.get_size();
-            int count = vault.get_count();
-
-            std::cout << "Total passwords in the vault: " << count << std::endl;
-            std::cout << "Vault file size is: " << size << " Bytes." << std::endl;
-        }
-
-         void close() { 
-            vault.close_vault();
-            std::cout << "Vault closed succesfully. Use 'open' to reopen it." << std::endl;
-        }
+        void stats();
+        void close();
 
 
         // static constexpr data (centrelize in struct instead of multiple arrays)
         // add sudo boolean to that and DRY the sudo prompt in the shell implementation calls
+        // add allowed when vault is closed boolean
 
-        static constexpr const char * const commands[] = {"open", "close", "add", "list", "show", "del", "stats", "chpass", "rename", "exit", nullptr};
+        static constexpr const char * const commands[] = {"open", "close", "exit", "add", "list", "show", "del", "stats", "chpass", "rename", nullptr};
         // remainding are: help, chmaster, search
         // flags: gen for passwrod gen and copy flag
 
@@ -95,8 +64,8 @@ class Shell {
         + config::max_name_len + config::max_password_len + 1; // 1 for null terminator
 
         using MethodPtr = void (Shell::*)();
-        static constexpr MethodPtr operations[] = {&Shell::open, &Shell::close, &Shell::add, &Shell::list, &Shell::show, &Shell::del, &Shell::stats, &Shell::chpass, &Shell::rename, &Shell::exit};
-        static constexpr int commands_has_arg[] = {false, false, true, false, true, true, false, true, true, false};
+        static constexpr MethodPtr operations[] = {&Shell::open, &Shell::close, &Shell::exit, &Shell::add, &Shell::list, &Shell::show, &Shell::del, &Shell::stats, &Shell::chpass, &Shell::rename};
+        static constexpr int commands_has_arg[] = {false, false, false, true, false, true, true, false, true, true};
 
     public:
         Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};

@@ -41,7 +41,7 @@ class Vault {
 
         bool open_vault(crypto::SafeVar &master_passowrd);
 
-        void close_vault() { this->dictionary.empty(); _is_open = false; };
+        void close_vault() { dictionary.empty(); _is_open = false; };
 
         bool add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd);
 

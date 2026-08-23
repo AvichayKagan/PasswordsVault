@@ -92,7 +92,12 @@ class Shell {
     public:
         Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};
 
-        // add destructor? (to clsoe the vault)
+        ~Shell() { vault.close_vault(); }
+
+        Shell(const Shell&) = delete;
+        Shell& operator=(const Shell&) = delete;
+        Shell(Shell&&) = delete;
+        Shell& operator=(Shell&&) = delete;
 
         void run();
 

@@ -177,6 +177,27 @@ void Shell::rename() {
     }
 }
 
+
+void Shell::chmaster() {
+    crypto::SafeVar new_master(config::max_password_len);
+
+    std::cout << "Please enter a new master password for the vault: " << std::flush;
+    if (safeIO::input(new_master.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
+    
+    std::cout << "Please enter the old master password to continue with this operation: " << std::flush;
+    while (true) {
+        crypto::SafeVar master_password(config::max_password_len);
+        if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (*master_password.get() == '\0') break;
+
+        if (vault.change_master(new_master, std::move(master_password))) {
+            std::cout << "Master password has been change successfully." << std::endl;
+            break;
+        }
+        std::cout << "Incorrect Old Master Password. Please try again or press enter to exit: " << std::flush;
+    }
+}
+
 void Shell::run() {
     crypto::SafeVar input(max_input_len);
     int code;

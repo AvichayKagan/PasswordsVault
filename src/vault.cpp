@@ -7,29 +7,23 @@ using namespace vault;
 
 class Vault::Sudo {
     private:
-        Vault &vault;
-        crypto::SafeVar master_password;
+        crypto::SafeVar _master_key;
         bool sudo = false;
 
     public:
-        Sudo(Vault &_vault, crypto::SafeVar &&_master_password) :vault(_vault), master_password(std::move(_master_password)) {
-           try {
+        Sudo(Vault &vault, crypto::SafeVar &&_master_password) : _master_key(vault.master_key) {
+            crypto::SafeVar master_password = std::move(_master_password);
+            try {
                 master_password.hash(vault.salt);
-                vault.master_key.decrypto(master_password.get(), true);
+                _master_key.decrypto(master_password.get(), true);
                 sudo = true;
             }
             catch (const crypto::Error& e) {
                 if (e.code() != crypto::IncorrectPassword) throw;
             }
-            catch (...) {
-                throw;
-            }
         }
 
-        ~Sudo() {
-            if (sudo) vault.master_key.encrypto(master_password.get());
-        }
-
+        ~Sudo() = default;
         Sudo(const Sudo&) = delete;
         Sudo& operator=(const Sudo&) = delete;
         Sudo(Sudo&&) = delete;
@@ -37,6 +31,8 @@ class Vault::Sudo {
 
 
         explicit operator bool() { return sudo; }
+
+        crypto::SafeVar& master_key() { return _master_key; }
 };
 
 
@@ -53,7 +49,7 @@ bool Vault::open_vault(crypto::SafeVar &master_passowrd) {
 
     // init the dictionary
     try {
-        disk_mang.read_vault_data(dictionary, master_key, session_key);
+        disk_mang.read_vault_data(dictionary, sudo.master_key(), session_key);
     }
     catch (...) { 
         dictionary.empty(); 
@@ -92,7 +88,7 @@ bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, cry
     password.encrypto(session_key.get());
     Dict::Node *added_node = dictionary.append_node(std::move(name), std::move(password));
     try {
-        disk_mang.write_vault_data(dictionary, master_key, session_key); // make sure it wont corrupt the data!
+        disk_mang.write_vault_data(dictionary, sudo.master_key(), session_key); // make sure it wont corrupt the data!
     }
     catch (...) {
         dictionary.delete_node(added_node, false);
@@ -111,7 +107,7 @@ bool Vault::del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowr
 
     std::unique_ptr<Dict::Node> deleted_node = dictionary.delete_node(target, true);
     try {
-        disk_mang.write_vault_data(dictionary, master_key, session_key);
+        disk_mang.write_vault_data(dictionary, sudo.master_key(), session_key);
     }
     catch (...) {
         dictionary.append_node_raw(std::move(deleted_node));
@@ -132,7 +128,7 @@ bool Vault::change_password(crypto::SafeVar &name, crypto::SafeVar &&password, c
     password.encrypto(session_key.get());
     target->password = std::move(password);
     try {
-        disk_mang.write_vault_data(dictionary, master_key, session_key);
+        disk_mang.write_vault_data(dictionary, sudo.master_key(), session_key);
     }
     catch (...) {
         target->password = std::move(old_password);
@@ -152,7 +148,7 @@ bool Vault::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypt
     crypto::SafeVar old_name = target->name;
     target->name = std::move(new_name);
     try {
-        disk_mang.write_vault_data(dictionary, master_key, session_key);
+        disk_mang.write_vault_data(dictionary, sudo.master_key(), session_key);
     }
     catch (...) {
         target->name = std::move(old_name);

@@ -30,7 +30,6 @@ class Vault {
         void init_vault();
         class Sudo;
         Sudo acquire_sudo(crypto::SafeVar &&master_password);
-        void flush(Sudo &sudo_token);
     
     public:
 

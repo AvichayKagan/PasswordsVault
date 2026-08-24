@@ -8,11 +8,12 @@ using namespace vault;
 class Vault::Sudo {
     private:
         bool sudo = false;
+        Vault &vault;
 
     public:
         crypto::SafeVar master_key;
 
-        Sudo(Vault &vault, crypto::SafeVar &&_master_password) : master_key(vault.master_key_enc) {
+        Sudo(Vault &_vault, crypto::SafeVar &&_master_password) : vault(_vault), master_key(vault.master_key_enc) {
             crypto::SafeVar master_password = std::move(_master_password);
             try {
                 master_password.hash(vault.salt);
@@ -30,8 +31,39 @@ class Vault::Sudo {
         Sudo(Sudo&&) = delete;
         Sudo& operator=(Sudo&&) = delete;
 
-
         explicit operator bool() { return sudo; }
+
+        void write() { 
+            vault.disk_mang.atomic_write_file(vault.dictionary, master_key, vault.master_key_enc, vault.session_key, vault.salt); 
+        }
+
+        void read() {
+            try {
+                vault.disk_mang.read_vault_data(vault.dictionary, master_key, vault.session_key);
+            }
+            catch (...) { 
+                vault.dictionary.empty(); 
+                throw;
+            }
+
+            vault._is_open = true;
+        }
+
+        void change_master(crypto::SafeVar &new_master) {
+            crypto::SafeVar old_master_key_enc = vault.master_key_enc;
+            try {
+                new_master.hash(vault.salt);
+                vault.master_key_enc = master_key;
+                vault.master_key_enc.encrypto(new_master.get());
+                write();
+            }
+            catch (...) {
+                vault.master_key_enc = std::move(old_master_key_enc);
+                throw;
+            }
+        }
+
+      
 };
 
 
@@ -39,9 +71,6 @@ Vault::Sudo Vault::acquire_sudo(crypto::SafeVar &&master_password) {
     return Vault::Sudo(*this, std::move(master_password));
 }
 
-void Vault::flush(Sudo &sudo_token) { 
-    disk_mang.atomic_write_file(dictionary, sudo_token.master_key, master_key_enc, session_key, salt); 
-}
 
 bool Vault::open_vault(crypto::SafeVar &master_passowrd) {
     // init session key
@@ -50,16 +79,8 @@ bool Vault::open_vault(crypto::SafeVar &master_passowrd) {
     auto sudo = acquire_sudo(std::move(master_passowrd));
     if (!sudo) return false;
 
-    // init the dictionary
-    try {
-        disk_mang.read_vault_data(dictionary, sudo.master_key, session_key);
-    }
-    catch (...) { 
-        dictionary.empty(); 
-        throw;
-    }
+    sudo.read(); // read the vault file using sudo
 
-    _is_open = true;
     return true;
 }
 
@@ -81,7 +102,7 @@ void Vault::init_vault() {
 
     auto sudo = acquire_sudo(std::move(password));
     if (!sudo) throw std::runtime_error("ASSERT ERROR");
-    flush(sudo);
+    sudo.write();
 }
 
 bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd) {
@@ -91,7 +112,7 @@ bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, cry
     password.encrypto(session_key.get());
     Dict::Node *added_node = dictionary.append_node(std::move(name), std::move(password));
     try {
-        flush(sudo);
+        sudo.write();
     }
     catch (...) {
         dictionary.delete_node(added_node, false);
@@ -110,7 +131,7 @@ bool Vault::del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowr
 
     std::unique_ptr<Dict::Node> deleted_node = dictionary.delete_node(target, true);
     try {
-        flush(sudo);
+        sudo.write();
     }
     catch (...) {
         dictionary.append_node_raw(std::move(deleted_node));
@@ -131,7 +152,7 @@ bool Vault::change_password(crypto::SafeVar &name, crypto::SafeVar &&password, c
     password.encrypto(session_key.get());
     target->password = std::move(password);
     try {
-        flush(sudo);
+        sudo.write();
     }
     catch (...) {
         target->password = std::move(old_password);
@@ -151,7 +172,7 @@ bool Vault::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypt
     crypto::SafeVar old_name = target->name;
     target->name = std::move(new_name);
     try {
-        flush(sudo);
+        sudo.write();
     }
     catch (...) {
         target->name = std::move(old_name);
@@ -165,17 +186,7 @@ bool Vault::change_master(crypto::SafeVar &new_master, crypto::SafeVar &&master_
     auto sudo = acquire_sudo(std::move(master_password));
     if (!sudo) return false;
 
-    crypto::SafeVar old_master_key_enc = master_key_enc;
-    try {
-        new_master.hash(salt);
-        master_key_enc = sudo.master_key;
-        master_key_enc.encrypto(new_master.get());
-        flush(sudo);
-    }
-    catch (...) {
-        master_key_enc = std::move(old_master_key_enc);
-        throw;
-    }
+    sudo.change_master(new_master);
      
     return true;
 }

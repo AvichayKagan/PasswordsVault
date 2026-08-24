@@ -34,10 +34,14 @@ class Vault::Sudo {
         explicit operator bool() { return sudo; }
 
         void write() { 
+            if (!sudo) throw Error("Attempted to make sudo operation with no sudo privileges", PremissionError);
+
             vault.disk_mang.atomic_write_file(vault.dictionary, master_key, vault.master_key_enc, vault.session_key, vault.salt); 
         }
 
         void read() {
+            if (!sudo) throw Error("Attempted to make sudo operation with no sudo privileges", PremissionError);
+
             try {
                 vault.disk_mang.read_vault_data(vault.dictionary, master_key, vault.session_key);
             }
@@ -50,6 +54,8 @@ class Vault::Sudo {
         }
 
         void change_master(crypto::SafeVar &new_master) {
+            if (!sudo) throw Error("Attempted to make sudo operation with no sudo privileges", PremissionError);
+
             crypto::SafeVar old_master_key_enc = vault.master_key_enc;
             try {
                 new_master.hash(vault.salt);
@@ -93,7 +99,7 @@ void Vault::init_vault() {
     crypto::random(salt, crypto::salt_len);
 
     std::cout << "Please choose and enter a master password for the new vault: " << std::flush;
-    if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.");
+    if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.", ioError);
     
     password_hash = password;
     password_hash.hash(salt);

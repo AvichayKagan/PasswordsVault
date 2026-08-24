@@ -13,10 +13,15 @@ namespace vault {
 
 class Error : public config::GeneralError {
     public:
-        explicit Error(const std::string& message, int errorCode = 1) 
+        explicit Error(const std::string& message, int errorCode) 
             : config::GeneralError(message, "VAULT", errorCode) {}
 };
 
+enum ErrorCode {
+    ioError = 1,
+
+    PremissionError = 10
+};
 
 class Vault {
     private:

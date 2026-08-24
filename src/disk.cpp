@@ -121,10 +121,10 @@ void DiskManager::atomic_write_file(Dict &dict, crypto::SafeVar &master_key, cry
         if (!fwrite(&pre_header, sizeof(unsigned long long), 1, temp)) throw Error("Couldn't write pre-header to temp file.", WriteError);
 
         // write salt
-        if (fwrite(salt, 1, crypto::salt_len, file) != crypto::salt_len) throw Error("Failed to write the salt to temp file.", WriteError);
+        if (fwrite(salt, 1, crypto::salt_len, temp) != crypto::salt_len) throw Error("Failed to write the salt to temp file.", WriteError);
 
         // write master key (encryptoed)
-        if (fwrite(master_key_enc.get(), 1, master_key_enc.get_size(), file) != master_key_enc.get_size()) throw Error("Failed to write the master key to temp file.", WriteError);
+        if (fwrite(master_key_enc.get(), 1, master_key_enc.get_size(), temp) != master_key_enc.get_size()) throw Error("Failed to write the master key to temp file.", WriteError);
 
         // write data to temp file
         if (fwrite(vault_data.get(), 1, vault_data.get_size(), temp) != vault_data.get_size()) throw Error("Failed to write vault data to temp file.", WriteError);

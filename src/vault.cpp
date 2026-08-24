@@ -74,11 +74,10 @@ void Vault::init_vault() {
     master_key_enc.encrypto(password.get());
     password.memzero();
 
-    // write the header - salt and master key
-    disk_mang.write_vault_header(salt, master_key_enc);
-    // write empty data - passing dummy session key
+
     crypto::SafeVar dummy;
-    disk_mang.write_vault_data(dictionary, master_key, dummy);
+    // write empty vault - passing dummy session key
+    disk_mang.atomic_write_file(dictionary, master_key, master_key_enc, dummy, salt);
 }
 
 bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd) {
@@ -88,7 +87,7 @@ bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, cry
     password.encrypto(session_key.get());
     Dict::Node *added_node = dictionary.append_node(std::move(name), std::move(password));
     try {
-        disk_mang.write_vault_data(dictionary, sudo.master_key(), session_key); // make sure it wont corrupt the data!
+        disk_mang.atomic_write_file(dictionary, sudo.master_key(), master_key, session_key, salt);
     }
     catch (...) {
         dictionary.delete_node(added_node, false);
@@ -107,7 +106,7 @@ bool Vault::del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowr
 
     std::unique_ptr<Dict::Node> deleted_node = dictionary.delete_node(target, true);
     try {
-        disk_mang.write_vault_data(dictionary, sudo.master_key(), session_key);
+        disk_mang.atomic_write_file(dictionary, sudo.master_key(), master_key, session_key, salt);
     }
     catch (...) {
         dictionary.append_node_raw(std::move(deleted_node));
@@ -128,7 +127,7 @@ bool Vault::change_password(crypto::SafeVar &name, crypto::SafeVar &&password, c
     password.encrypto(session_key.get());
     target->password = std::move(password);
     try {
-        disk_mang.write_vault_data(dictionary, sudo.master_key(), session_key);
+        disk_mang.atomic_write_file(dictionary, sudo.master_key(), master_key, session_key, salt);
     }
     catch (...) {
         target->password = std::move(old_password);
@@ -148,7 +147,7 @@ bool Vault::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypt
     crypto::SafeVar old_name = target->name;
     target->name = std::move(new_name);
     try {
-        disk_mang.write_vault_data(dictionary, sudo.master_key(), session_key);
+        disk_mang.atomic_write_file(dictionary, sudo.master_key(), master_key, session_key, salt);
     }
     catch (...) {
         target->name = std::move(old_name);

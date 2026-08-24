@@ -100,6 +100,8 @@ namespace crypto {
             
             unsigned char *get() { return ptr; }
 
+            size_t get_size() { return size; }
+
             void memzero() { sodium_memzero(ptr, size); }
 
             // never use on encrypted data

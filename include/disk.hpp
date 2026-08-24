@@ -24,7 +24,7 @@ enum ErrorCode {
     CreateError = 11,
     OpenError = 12,
 
-    TruncateError = 21,
+    RenameError = 21,
 
     WrongPreHeader = 31, 
 
@@ -40,7 +40,6 @@ class DiskManager {
         static constexpr unsigned long long pre_header  = 0xDB1D26A4734EB42CLL;
 
         void verify_pre_header();
-        void atomic_write_data(unsigned char *data, size_t len);
         void write_vault_pre_header() {
             if (!fwrite(&pre_header, sizeof(unsigned long long), 1, file)) throw Error("Couldn't write pre-header to disk.", WriteError);
         }
@@ -81,11 +80,9 @@ class DiskManager {
 
         void read_vault_header(crypto::Salt salt, crypto::SafeVar &master_key);
 
-        void write_vault_header(crypto::Salt salt, crypto::SafeVar &master_key);
-
         void read_vault_data(Dict &dict, crypto::SafeVar &master_key, crypto::SafeVar &session_key);
 
-        void write_vault_data(Dict &dict, crypto::SafeVar &master_key, crypto::SafeVar &session_key);
+        void atomic_write_file(Dict &dict, crypto::SafeVar &master_key, crypto::SafeVar &master_key_enc, crypto::SafeVar &session_key, crypto::Salt salt);
 };
 
 }

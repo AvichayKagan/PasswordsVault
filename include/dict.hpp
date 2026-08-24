@@ -30,6 +30,8 @@ class Dict {
         Node *search(char *name);
 
         Node *get_head() { return head.get(); }
+        
+        crypto::SafeVar pack(crypto::SafeVar &session_key, crypto::SafeVar &master_key);
 
         unsigned int get_count() { return node_count; }
 

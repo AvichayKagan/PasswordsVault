@@ -160,3 +160,23 @@ bool Vault::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypt
      
     return true;
 }
+
+bool Vault::change_master(crypto::SafeVar &new_master, crypto::SafeVar &&master_password) {
+    auto sudo = acquire_sudo(std::move(master_password));
+    if (!sudo) return false;
+
+    crypto::SafeVar old_master_key_enc = master_key_enc;
+    try {
+        new_master.hash(salt);
+        master_key_enc = sudo.master_key;
+        master_key_enc.encrypto(new_master.get());
+        flush(sudo);
+    }
+    catch (...) {
+        master_key_enc = std::move(old_master_key_enc);
+        throw;
+    }
+     
+    return true;
+}
+

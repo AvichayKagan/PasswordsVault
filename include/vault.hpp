@@ -53,6 +53,7 @@ class Vault {
 
         bool change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypto::SafeVar &&master_passowrd);
 
+        bool change_master(crypto::SafeVar &new_master, crypto::SafeVar &&master_passowrd);
 
         bool exists(crypto::SafeVar &name) { return (dictionary.search((char *)name.get()) == nullptr) ? false : true; }
 

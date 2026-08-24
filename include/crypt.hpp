@@ -36,7 +36,7 @@ namespace crypto {
 
     class SafeVar {
         private:
-            size_t size = -1; // total allocated size in bytes
+            size_t size = 0; // total allocated size in bytes
             unsigned char *ptr = nullptr;
         
         public:
@@ -57,6 +57,8 @@ namespace crypto {
             ~SafeVar() { if (ptr != nullptr) sodium_free(ptr); }
             
             SafeVar(const SafeVar& other) {
+                if (other.size == 0) return;
+
                 this->size = other.size;
                 this->ptr = (unsigned char *)sodium_malloc(other.size);
                 if (this->ptr == nullptr) throw std::bad_alloc();
@@ -66,13 +68,25 @@ namespace crypto {
             SafeVar& operator=(const SafeVar& other) {
                 if (this == &other) return *this;
 
-                unsigned char *temp = (unsigned char *)sodium_malloc(other.size);
-                if (temp == nullptr) throw std::bad_alloc();
+                // same size optimization (no realloc)
+                if (this->size == other.size) {
+                    if (this->ptr != nullptr) std::memcpy(this->ptr, other.ptr, this->size);
+                    return *this;
+                }
 
+
+                // set a new memory pointer for 'this'
+                unsigned char *temp = nullptr;
+                if (other.size != 0) {
+                    temp = (unsigned char *)sodium_malloc(other.size);
+                    if (temp == nullptr) throw std::bad_alloc();
+                    std::memcpy(temp, other.ptr,  other.size);
+                }
+
+                // set the this object
                 this->size = other.size;
-                sodium_free(this->ptr);
+                if (this->ptr != nullptr) sodium_free(this->ptr);
                 this->ptr = temp;
-                std::memcpy(this->ptr, other.ptr, this->size);
 
                 return *this;
             }
@@ -87,7 +101,7 @@ namespace crypto {
             SafeVar& operator=(SafeVar&& other) noexcept {
                 if (this == &other) return *this;
 
-                sodium_free(this->ptr);
+                if (this->ptr != nullptr) sodium_free(this->ptr);
 
                 this->size = other.size;
                 this->ptr = other.ptr;

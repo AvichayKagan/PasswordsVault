@@ -21,7 +21,7 @@ class Error : public config::GeneralError {
 class Vault {
     private:
         crypto::Salt salt;
-        crypto::SafeVar master_key;
+        crypto::SafeVar master_key_enc;
         crypto::SafeVar session_key;
         disk::DiskManager disk_mang;
         Dict dictionary;
@@ -30,18 +30,20 @@ class Vault {
         void init_vault();
         class Sudo;
         Sudo acquire_sudo(crypto::SafeVar &&master_password);
+        void flush(Sudo &sudo_token);
     
     public:
 
-        Vault() :master_key(crypto::key_len), session_key(crypto::key_len) {
-            if (disk_mang.get_size() == disk::DiskManager::pre_header_size) init_vault();
-
-            disk_mang.read_vault_header(this->salt, this->master_key);
+        Vault() :master_key_enc(crypto::key_len), session_key(crypto::key_len) {
+            if (disk_mang.get_size() == disk::DiskManager::pre_header_size) {
+                init_vault();
+            }
+            else disk_mang.read_vault_header(salt, master_key_enc);
         }
 
         bool open_vault(crypto::SafeVar &master_passowrd);
 
-        void close_vault() { dictionary.empty(); _is_open = false; };
+        void close_vault() { dictionary.empty(); session_key.memzero(); _is_open = false; };
 
         bool add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd);
 

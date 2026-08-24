@@ -60,3 +60,27 @@ Dict::Node *Dict::search(char *name) {
 
     return curr;
 }
+
+crypto::SafeVar Dict::pack(crypto::SafeVar &session_key, crypto::SafeVar &master_key) {
+    size_t write_len = get_count() * (config::max_name_len + config::max_password_len);
+    crypto::SafeVar vault_data(write_len);
+    int j = 0;
+    
+    // load the buffer
+    for (Dict::Node *i = get_head(); i != nullptr; i = i->get_next()) {
+        crypto::SafeVar& password = i->password;
+
+        // write the name
+        std::memcpy(vault_data.get() + j, i->name.get(), config::max_name_len);
+        j += config::max_name_len;
+
+        // write the password
+        password.decrypto(session_key.get(), false);
+        std::memcpy(vault_data.get() + j, password.get(), config::max_password_len);
+        j += config::max_password_len;
+        password.encrypto(session_key.get());
+    }
+    vault_data.encrypto(master_key.get());
+
+    return vault_data;
+}

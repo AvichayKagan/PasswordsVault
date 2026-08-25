@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <termios.h>
 #include <unistd.h>
 #include <string.h>
 #include "sodium.h"
@@ -14,8 +13,11 @@ static int ret(int code, char *ch) {
     return code;
 }
 
+int is_interactive_terminal() {
+    return isatty(STDIN_FILENO);
+}
+
 int input(unsigned char *buffer, size_t max_len, int hide_char) {
-    struct termios oldt, newt;
     size_t idx = 0;
     char *ch;
     int status;
@@ -24,14 +26,6 @@ int input(unsigned char *buffer, size_t max_len, int hide_char) {
     // cannot palce sesitive info on the stack, must use sodium_malloc
     ch = sodium_malloc(1);
     if (ch == NULL) return -1;
-
-    // Save original terminal settings and clone them
-    if (tcgetattr(STDIN_FILENO, &oldt)) return ret(-1, ch);
-    newt = oldt;
-
-    // Disable canonical mode (ICANON) and echo (ECHO)
-    newt.c_lflag &= ~(ICANON | ECHO);
-    if (tcsetattr(STDIN_FILENO, TCSANOW, &newt)) ret(-1, ch);
 
     // read characters
     while (1) {
@@ -65,8 +59,6 @@ int input(unsigned char *buffer, size_t max_len, int hide_char) {
 
     buffer[idx] = '\0'; // Null-terminate the string
 
-    // restore original terminal settings before exiting function
-    if (tcsetattr(STDIN_FILENO, TCSANOW, &oldt)) ret(-1, ch);
     write(STDOUT_FILENO, "\n", 1);
 
     return ret(error, ch);
@@ -78,24 +70,7 @@ void safe_write(const char *message) {
 }
 
 int key_press() {
-    struct termios oldt, newt;
-    int ch;
-
-    // Save original terminal settings and clone them
-    if (tcgetattr(STDIN_FILENO, &oldt)) return -1;
-    newt = oldt;
-
-    // modify the terminal
-    newt.c_lflag &= ~(ICANON | ECHO);
-    if (tcsetattr(STDIN_FILENO, TCSANOW, &newt)) return -1;
-
-    // grab single character
-    ch = getchar();
-
-    // restore original terminal settings before exiting function
-    if (tcsetattr(STDIN_FILENO, TCSANOW, &oldt)) return -1;
-
-    return ch;
+    return getchar();
 }
 
 #endif // _WIN32

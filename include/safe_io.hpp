@@ -2,17 +2,46 @@
 
 #include <iostream>
 #include <unistd.h>
+#include <termios.h>
 
 
 namespace safeio {
 
 extern "C" {
+    int is_interactive_terminal();
+
     int input(unsigned char *buffer, size_t max_len, int hide_char);
 
     int safe_write(const char *message);
 
     int key_press();
 }
+
+class SafeTerminal {
+    private:
+        struct termios oldt;
+
+    public:
+        SafeTerminal() {
+            struct termios newt;
+            // Save original terminal settings and clone them
+            if (tcgetattr(STDIN_FILENO, &oldt)) throw config::FatalError("Failed to initiate safe terminal.", "IO"); // test this
+            newt = oldt;
+
+            // Disable canonical mode (ICANON) and echo (ECHO)
+            newt.c_lflag &= ~(ICANON | ECHO);
+            if (tcsetattr(STDIN_FILENO, TCSANOW, &newt)) throw config::FatalError("Failed to initiate safe terminal.", "IO");
+        }
+
+        ~SafeTerminal() {
+            if (tcsetattr(STDIN_FILENO, TCSANOW, &oldt)) std::cerr << "Warning: failed to restore termianl settings.\n"; //test this
+        }
+
+        SafeTerminal(const SafeTerminal&) = delete;
+        SafeTerminal& operator=(const SafeTerminal&) = delete;
+        SafeTerminal(SafeTerminal&&) = delete;
+        SafeTerminal& operator=(SafeTerminal&&) = delete;
+};
 
 class Secret {
 public:

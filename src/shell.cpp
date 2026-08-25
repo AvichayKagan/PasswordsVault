@@ -45,7 +45,10 @@ void Shell::list() {
     if (vault.is_empty()) {
         std::cout << "Vault is empty." << std::endl;
     }
-    else vault.list_all(); 
+    else vault.list_all();
+    safeio::cout << "\nPress any key to delete the list..." << safeio::flush;
+    safeio::key_press();
+    safeio::cout << safeio::Destroy("The passwords have been listed.");
 }
 
 void Shell::stats() {
@@ -119,13 +122,10 @@ void Shell::show() {
         return;
     }
 
-    // must securley print this!
-    safeio::cout << "The password for '" << safeio::Secret(arg.get()) << "' is: '" << password.get() << "', Press any key to delete this massage, or 'v' to copy the password." << safeio::endl;
+    
+    safeio::cout << "The password for '" << safeio::Secret(arg.get()) << "' is: '" << password.get() << "', Press any key to delete this massage, or 'c' to copy the password." << safeio::flush;
     switch (safeio::key_press()) {
-        case -1:
-            // throw
-            break;
-        case 'v':
+        case 'c':
             // copy
             break;
         default:
@@ -245,7 +245,7 @@ void Shell::run() {
             std::cerr << "Error: Could not complete opertation: " << e.what() << '\n';
         }
 
-        this->reset();
+        reset();
     }
 }
 

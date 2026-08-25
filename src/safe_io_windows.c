@@ -7,6 +7,16 @@
 #include <conio.h>
 #include "sodium.h"
 
+int is_interactive_terminal() {
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    if (hStdin == INVALID_HANDLE_VALUE || hStdin == NULL) {
+        return 0;
+    }
+    
+    DWORD mode = 0;
+    // GetConsoleMode will fail if stdin is redirected from a file or a pipe
+    return GetConsoleMode(hStdin, &mode);
+}
 
 int input(char *buffer, size_t max_len, int hide_char) {
     size_t idx = 0;
@@ -62,8 +72,7 @@ void safe_write(const char *message) {
 
 
 int key_press() {
-    // ...
-    return -1;
+    return _getch();
 }
 
 

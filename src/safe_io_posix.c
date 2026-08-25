@@ -73,4 +73,37 @@ int input(unsigned char *buffer, size_t max_len, int hide_char) {
 }
 
 
+int key_press() {
+    struct termios oldt, newt;
+    int ch;
+
+    // Save original terminal settings and clone them
+    if (tcgetattr(STDIN_FILENO, &oldt)) return -1;
+    newt = oldt;
+
+    // modify the terminal
+    newt.c_lflag &= ~(ICANON | ECHO);
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &newt)) return -1;
+
+    // grab single character
+    ch = getchar();
+
+    // restore original terminal settings before exiting function
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &oldt)) return -1;
+
+    return ch;
+}
+
+void safe_print_set() {
+    // 1. Switch to Alternate Screen Buffer: \033[?1049h
+    write(STDOUT_FILENO, "\033[?1049h", 8);
+    // 2. Move cursor to top left and clear this new buffer just in case
+    write(STDOUT_FILENO, "\033[2J\033[H", 7);
+}
+
+void safe_print_destroy() {
+    write(STDOUT_FILENO, "\033[?1049l", 8);
+}
+
+
 #endif // _WIN32

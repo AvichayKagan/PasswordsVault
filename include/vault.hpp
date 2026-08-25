@@ -7,6 +7,7 @@
 #include "configs.hpp"
 #include "dict.hpp"
 #include "crypt.hpp"
+#include "safe_io.hpp"
 #include "disk.hpp"
 
 namespace vault {
@@ -79,7 +80,7 @@ class Vault {
 
         void list_all() {
             for (Dict::Node *i = dictionary.get_head(); i != nullptr; i = i->get_next() ) {
-                std::cout << i->name.get() << std::endl; // must safely print this!
+                safeio::cout << safeio::Secret(i->name.get()) << safeio::endl;
             }
         }
 

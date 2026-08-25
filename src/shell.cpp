@@ -1,5 +1,4 @@
 #include "shell.hpp"
-#include "safe_io.h"
 
 using namespace shell;
 
@@ -35,7 +34,7 @@ void Shell::help() {
 void Shell::open() { 
     crypto::SafeVar master_password(config::max_password_len);
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
-    if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+    if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
     if (vault.open_vault(master_password)) {
         std::cout << "Vault opened succesfully." << std::endl;
     }
@@ -74,13 +73,13 @@ void Shell::add() {
     }
 
     std::cout << "Please enter the password for " << name.get() << ": " << std::flush;
-    if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
+    if (safeio::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     
 
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
         if (vault.add_password(std::move(name), std::move(password), std::move(master_password))) {
@@ -101,7 +100,7 @@ void Shell::del() {
 
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
         
         if (vault.del_password(arg, std::move(master_password))) {
@@ -121,7 +120,18 @@ void Shell::show() {
     }
 
     // must securley print this!
-    std::cout << "The password for '" << arg.get() << "' is: '" << password.get() << "', Press any key to delete this massage, or 'v' to copy the password." << std::endl;
+    safeio::cout << "The password for '" << arg.get() << "' is: '" << password.get() << "', Press any key to delete this massage, or 'v' to copy the password." << safeio::endl;
+    switch (safeio::key_press()) {
+        case -1:
+            // throw
+            break;
+        case 'v':
+            // copy
+            break;
+        default:
+            safeio::cout << safeio::destroy;
+            break;
+    }
 }
 
 
@@ -134,13 +144,13 @@ void Shell::chpass() {
     }
 
     std::cout << "Please enter the new password for " << arg.get() << ": " << std::flush;
-    if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
+    if (safeio::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     
 
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
         if (vault.change_password(arg, std::move(password), std::move(master_password))) {
@@ -160,13 +170,13 @@ void Shell::rename() {
     }
 
     std::cout << "Please enter the new name for " << arg.get() << ": " << std::flush;
-    if (safeIO::input(new_name.get(), config::max_name_len, false)) throw Error("Failed to take password from the user.");
+    if (safeio::input(new_name.get(), config::max_name_len, false)) throw Error("Failed to take password from the user.");
     
 
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
         if (vault.change_name(arg, std::move(new_name), std::move(master_password))) {
@@ -182,12 +192,12 @@ void Shell::chmaster() {
     crypto::SafeVar new_master(config::max_password_len);
 
     std::cout << "Please enter a new master password for the vault: " << std::flush;
-    if (safeIO::input(new_master.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
+    if (safeio::input(new_master.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     
     std::cout << "Please enter the old master password to continue with this operation: " << std::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeIO::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
         if (vault.change_master(new_master, std::move(master_password))) {
@@ -208,7 +218,7 @@ void Shell::run() {
 
     while (is_running) {
         std::cout << std::endl;
-        if (safeIO::input(input.get(), max_input_len, false)) throw Error("Failed to read command from the user.");
+        if (safeio::input(input.get(), max_input_len, false)) throw Error("Failed to read command from the user.");
 
         if (!this->parse(input.get(), &code)) continue;
 

@@ -1,7 +1,7 @@
 #include <iostream>
 #include "vault.hpp"
 #include "crypt.hpp"
-#include "safe_io.h"
+#include "safe_io.hpp"
 
 namespace shell {
 

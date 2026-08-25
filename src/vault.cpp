@@ -1,6 +1,6 @@
 #include <iostream>
 #include "vault.hpp"
-#include "safe_io.h"
+#include "safe_io.hpp"
 
 using namespace vault;
 
@@ -99,7 +99,7 @@ void Vault::init_vault() {
     crypto::random(salt, crypto::salt_len);
 
     std::cout << "Please choose and enter a master password for the new vault: " << std::flush;
-    if (safeIO::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.", ioError);
+    if (safeio::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.", ioError);
     
     password_hash = password;
     password_hash.hash(salt);

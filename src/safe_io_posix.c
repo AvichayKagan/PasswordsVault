@@ -72,6 +72,10 @@ int input(unsigned char *buffer, size_t max_len, int hide_char) {
     return ret(error, ch);
 }
 
+void safe_write(const char *message) {
+    // placeholder
+    printf("%s", message);
+}
 
 int key_press() {
     struct termios oldt, newt;

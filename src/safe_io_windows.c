@@ -55,6 +55,11 @@ int input(char *buffer, size_t max_len, int hide_char) {
     return 0;
 }
 
+void safe_write(const char *message) {
+    //
+    return;
+}
+
 
 int key_press() {
     // ...

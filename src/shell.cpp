@@ -129,7 +129,7 @@ void Shell::show() {
             // copy
             break;
         default:
-            safeio::cout << safeio::destroy;
+            safeio::cout << safeio::destroy("A password has been showed.");
             break;
     }
 }

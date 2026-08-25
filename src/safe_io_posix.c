@@ -94,16 +94,4 @@ int key_press() {
     return ch;
 }
 
-void safe_print_set() {
-    // 1. Switch to Alternate Screen Buffer: \033[?1049h
-    write(STDOUT_FILENO, "\033[?1049h", 8);
-    // 2. Move cursor to top left and clear this new buffer just in case
-    write(STDOUT_FILENO, "\033[2J\033[H", 7);
-}
-
-void safe_print_destroy() {
-    write(STDOUT_FILENO, "\033[?1049l", 8);
-}
-
-
 #endif // _WIN32

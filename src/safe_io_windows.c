@@ -51,8 +51,14 @@ int input(char *buffer, size_t max_len, int hide_char) {
 
     buffer[idx] = '\0'; // Null-terminate the string
 
-    sodium_Free(ch);
+    sodium_free(ch);
     return 0;
+}
+
+
+int key_press() {
+    // ...
+    return -1;
 }
 
 

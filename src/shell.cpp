@@ -120,7 +120,7 @@ void Shell::show() {
     }
 
     // must securley print this!
-    safeio::cout << "The password for '" << arg.get() << "' is: '" << password.get() << "', Press any key to delete this massage, or 'v' to copy the password." << safeio::endl;
+    safeio::cout << "The password for '" << safeio::Secret(arg.get()) << "' is: '" << password.get() << "', Press any key to delete this massage, or 'v' to copy the password." << safeio::endl;
     switch (safeio::key_press()) {
         case -1:
             // throw
@@ -129,7 +129,7 @@ void Shell::show() {
             // copy
             break;
         default:
-            safeio::cout << safeio::destroy("A password has been showed.");
+            safeio::cout << safeio::Destroy("A password has been showed.");
             break;
     }
 }

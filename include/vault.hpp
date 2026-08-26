@@ -45,6 +45,9 @@ class Vault {
             else disk_mang.read_vault_header(salt, master_key_enc);
         }
 
+        auto begin() const { return dictionary.begin(); }
+        auto end() const { return dictionary.end(); }
+
         bool open_vault(crypto::SafeVar &master_passowrd);
 
         void close_vault() { dictionary.clear(); session_key.memzero(); _is_open = false; };
@@ -69,8 +72,6 @@ class Vault {
         long long get_size() { return disk_mang.get_size(); }
 
         unsigned int get_count() { return dictionary.size(); }
-
-        void list_all() { dictionary.list_keys(); }
 
         bool is_empty() { return dictionary.empty(); }
 

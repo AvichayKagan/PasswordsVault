@@ -138,7 +138,7 @@ bool Vault::del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowr
         sudo.write();
     }
     catch (...) {
-        dictionary.insert(std::move(node));
+        dictionary.insert(std::move(node)); // noexcept?
         throw;
     }
      
@@ -179,7 +179,7 @@ bool Vault::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypt
     catch (...) {
         node = dictionary.extract(new_name_ref);
         node.key() = std::move(old_name);
-        dictionary.insert(std::move(node));
+        dictionary.insert(std::move(node)); // noexcept?
         throw;
     }
     

@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <string.h>
 #include "sodium.h"
+#include <unistd.h>
+#include <termios.h>
 
 
 static int ret(int code, char *ch) {
@@ -15,6 +17,30 @@ static int ret(int code, char *ch) {
 
 int is_interactive_terminal() {
     return isatty(STDIN_FILENO);
+}
+
+int set_terminal() {
+    static struct termios original_terminal;
+    static int set = 0;
+    struct termios newt;
+
+    if (!set) {
+        // Save original terminal settings and clone them
+        if (tcgetattr(STDIN_FILENO, &original_terminal)) return -1;
+        newt = original_terminal;
+
+        // Disable canonical mode (ICANON) and echo (ECHO)
+        newt.c_lflag &= ~(ICANON | ECHO);
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &newt)) return -1;
+
+        set = 1;
+    }
+    else {
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &original_terminal)) return -1;
+        set = 0;
+    }
+
+    return 0;
 }
 
 int input(unsigned char *buffer, size_t max_len, int hide_char) {

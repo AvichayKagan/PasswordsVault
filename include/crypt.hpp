@@ -111,8 +111,23 @@ namespace crypto {
                 return *this;
             }
 
+
+            /*bool operator==(const SafeVar& rhs) const noexcept {
+                if (ptr == rhs.ptr) return true;
+                
+                if (size != rhs.size) return false;
+
+                return !sodium_memcmp(ptr, rhs.ptr, size);
+            }*/
+
+            bool operator==(const SafeVar& rhs) const noexcept {
+                if (ptr == nullptr || rhs.ptr == nullptr) return false;
+
+                return !strcmp((char*)ptr, (char*)rhs.ptr);
+            }
+
             
-            unsigned char *get() { return ptr; }
+            unsigned char *get() const { return ptr; }
 
             size_t get_size() { return size; }
 

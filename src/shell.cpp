@@ -44,11 +44,15 @@ void Shell::open() {
 void Shell::list() { 
     if (vault.is_empty()) {
         std::cout << "Vault is empty." << std::endl;
+        return;
     }
-    else vault.list_all();
-    safeio::cout << "\nPress any key to delete the list..." << safeio::flush;
+
+    safeio::SafeStream cout("The vault content has been listed.");
+    for (Dict::Node *i = vault.get_head(); i != nullptr; i = i->get_next() ) {
+        cout << safeio::Secret(i->name.get()) << safeio::endl;
+    }
+    cout << "\nPress any key to delete the list..." << safeio::flush;
     safeio::key_press();
-    safeio::cout << safeio::Destroy("The passwords have been listed.");
 }
 
 void Shell::stats() {
@@ -122,15 +126,13 @@ void Shell::show() {
         return;
     }
 
-    
-    safeio::cout << "The password for '" << safeio::Secret(arg.get()) << "' is: '" << password.get() << "', Press any key to delete this massage, or 'c' to copy the password." << safeio::flush;
-    switch (safeio::key_press()) {
-        case 'c':
-            // copy
-            break;
-        default:
-            safeio::cout << safeio::Destroy("A password has been showed.");
-            break;
+    safeio::SafeStream cout("A password has been showed.");
+    cout << "The password for '" << safeio::Secret(arg.get()) << "' is: '" << safeio::Secret(password.get()) << "', Press any key to delete this massage, or 'c' to copy the password." << safeio::flush;
+    int ch = safeio::key_press();
+    if (ch == 'c') {
+
+        // copy
+        cout.set_msg("Password has been copied!");
     }
 }
 

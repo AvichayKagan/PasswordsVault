@@ -2,62 +2,32 @@
 
 #include <memory>
 #include <cstring>
+#include <iostream>
+#include <unordered_map>
 #include "configs.hpp"
 #include "crypt.hpp"
 
-
-class Dict {
-    public:
-        class Node;
-        
+struct SafeVarHash {
     private:
-        std::unique_ptr<Node> head;
-        Node *tail;
-        unsigned int node_count = 0;
-    
+        crypto::SafeVar &salt;
+
     public:
-        Dict() { tail = nullptr; } // head init to nullptr by default as unique pointer
+        SafeVarHash(crypto::SafeVar &_salt) :salt(_salt) {}
 
-        Node *append_node(crypto::SafeVar &&name, crypto::SafeVar&& password) {
-            auto new_node = std::make_unique<Node>(std::move(password), std::move(name));
-            return append_node_raw(std::move(new_node));
-        }
-
-        Node *append_node_raw(std::unique_ptr<Node> new_node);
-
-        std::unique_ptr<Node> delete_node(Node *node, bool catch_);
-
-        Node *search(char *name);
-
-        Node *get_head() { return head.get(); }
-        
-        crypto::SafeVar pack(crypto::SafeVar &session_key, crypto::SafeVar &master_key);
-
-        unsigned int get_count() { return node_count; }
-
-        void empty() { head.reset(); tail = nullptr; node_count = 0; } // must not except
+        std::size_t operator()(const crypto::SafeVar& obj) const; // must not except
 };
 
+class Dict final : public std::unordered_map<crypto::SafeVar, crypto::SafeVar, SafeVarHash> {
+private:
+    using Base = std::unordered_map<crypto::SafeVar, crypto::SafeVar, SafeVarHash>;
+public:
 
+    Dict(crypto::SafeVar &session_key) : Base(0, SafeVarHash(session_key)) {}
 
+    crypto::SafeVar pack(crypto::SafeVar &session_key, crypto::SafeVar &master_key);
 
-class Dict::Node {
-    private:
-        std::unique_ptr<Node> next;
-        Node *prev;
-
-    public:
-        friend class Dict;
-
-        crypto::SafeVar password;
-        crypto::SafeVar name;
-        
-        Node(crypto::SafeVar &&password, crypto::SafeVar &&name) {
-            this->password = std::move(password);
-            this->name = std::move(name);
-            this->next = nullptr;
-            this->prev = nullptr;
-        }
-
-        Node *get_next() { return (this->next).get(); }
+    void list_keys() {
+        for (const auto& i : *this) std::cout << i.first.get() << '\n';
+        std::cout << std::endl;
+    }
 };

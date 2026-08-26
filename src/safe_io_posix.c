@@ -91,8 +91,7 @@ int input(unsigned char *buffer, size_t max_len, int hide_char) {
 }
 
 void safe_write(const char *message) {
-    // placeholder
-    printf("%s", message);
+    write(STDOUT_FILENO, message, strlen(message));
 }
 
 int key_press() {

@@ -2,17 +2,12 @@
 
 #include <iostream>
 
-#ifndef _WIN32
-    #include <unistd.h>
-    #include <termios.h>
-#else
-    #include <windows.h>
-#endif
-
 namespace safeio {
 
 extern "C" {
     int is_interactive_terminal();
+
+    int set_terminal();
 
     int input(unsigned char *buffer, size_t max_len, int hide_char);
 
@@ -21,37 +16,21 @@ extern "C" {
     int key_press();
 }
 
-#ifndef _WIN32
-    // --- LINUX / POSIX ---
-    class SafeTerminal { // must make this windows compatible! also the headers!
-    private:
-        struct termios oldt;
+class SafeTerminal {
+public:
+    SafeTerminal() {
+        if (set_terminal()) throw config::FatalError("Failed to initiate safe terminal.", "IO");
+    }
 
-    public:
-        SafeTerminal() {
-            struct termios newt;
-            // Save original terminal settings and clone them
-            if (tcgetattr(STDIN_FILENO, &oldt)) throw config::FatalError("Failed to initiate safe terminal.", "IO"); // test this
-            newt = oldt;
+    ~SafeTerminal() {
+        if (set_terminal()) std::cerr << "Warning: failed to restore termianl settings.\n";
+    }
 
-            // Disable canonical mode (ICANON) and echo (ECHO)
-            newt.c_lflag &= ~(ICANON | ECHO);
-            if (tcsetattr(STDIN_FILENO, TCSANOW, &newt)) throw config::FatalError("Failed to initiate safe terminal.", "IO");
-        }
-
-        ~SafeTerminal() {
-            if (tcsetattr(STDIN_FILENO, TCSANOW, &oldt)) std::cerr << "Warning: failed to restore termianl settings.\n"; //test this
-        }
-
-        SafeTerminal(const SafeTerminal&) = delete;
-        SafeTerminal& operator=(const SafeTerminal&) = delete;
-        SafeTerminal(SafeTerminal&&) = delete;
-        SafeTerminal& operator=(SafeTerminal&&) = delete;
-    };
-#else
-    // --- WINDOWS ---
-    class SafeTerminal {}; // set he windows terminal to enable ansi escape sequences
-#endif
+    SafeTerminal(const SafeTerminal&) = delete;
+    SafeTerminal& operator=(const SafeTerminal&) = delete;
+    SafeTerminal(SafeTerminal&&) = delete;
+    SafeTerminal& operator=(SafeTerminal&&) = delete;
+};
 
 class Secret {
 public:

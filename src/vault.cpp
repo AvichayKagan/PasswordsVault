@@ -9,9 +9,9 @@ class Vault::Sudo {
     private:
         bool sudo = false;
         Vault &vault;
+        crypto::SafeVar master_key;
 
     public:
-        crypto::SafeVar master_key;
 
         Sudo(Vault &_vault, crypto::SafeVar &&_master_password) : vault(_vault), master_key(vault.master_key_enc) {
             crypto::SafeVar master_password = std::move(_master_password);

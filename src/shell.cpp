@@ -45,8 +45,11 @@ void Shell::open() {
 void Shell::list() {
     if (vault.is_empty()) {
         std::cout << "Vault is empty." << std::endl;
+        return;
     }
-    else vault.list_all(); 
+
+    for (const auto& i : vault) std::cout << i.first.get() << '\n';
+    std::cout << std::endl;
 }
 
 void Shell::stats() {

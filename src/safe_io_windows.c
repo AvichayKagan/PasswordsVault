@@ -89,8 +89,13 @@ int input(char *buffer, size_t max_len, int hide_char) {
 }
 
 void safe_write(const char *message) {
-    //
-    return;
+    DWORD charsWritten;
+    
+    // Get the handle to the standard output device
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    
+    // Write directly to the console buffer
+    WriteConsoleA(hConsole, message, (DWORD)strlen(message), &charsWritten, NULL);
 }
 
 

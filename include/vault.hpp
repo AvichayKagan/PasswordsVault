@@ -78,11 +78,7 @@ class Vault {
 
         unsigned int get_count() { return dictionary.get_count(); }
 
-        void list_all() {
-            for (Dict::Node *i = dictionary.get_head(); i != nullptr; i = i->get_next() ) {
-                safeio::cout << safeio::Secret(i->name.get()) << safeio::endl;
-            }
-        }
+        Dict::Node *get_head() { return dictionary.get_head(); }
 
         bool is_empty() { return !dictionary.get_head(); }
 

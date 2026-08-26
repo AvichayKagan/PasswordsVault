@@ -1,9 +1,13 @@
 #pragma once
 
 #include <iostream>
-#include <unistd.h>
-#include <termios.h>
 
+#ifndef _WIN32
+    #include <unistd.h>
+    #include <termios.h>
+#else
+    #include <windows.h>
+#endif
 
 namespace safeio {
 
@@ -17,7 +21,9 @@ extern "C" {
     int key_press();
 }
 
-class SafeTerminal {
+#ifndef _WIN32
+    // --- LINUX / POSIX ---
+    class SafeTerminal { // must make this windows compatible! also the headers!
     private:
         struct termios oldt;
 
@@ -41,7 +47,11 @@ class SafeTerminal {
         SafeTerminal& operator=(const SafeTerminal&) = delete;
         SafeTerminal(SafeTerminal&&) = delete;
         SafeTerminal& operator=(SafeTerminal&&) = delete;
-};
+    };
+#else
+    // --- WINDOWS ---
+    class SafeTerminal {}; // set he windows terminal to enable ansi escape sequences
+#endif
 
 class Secret {
 public:
@@ -50,68 +60,76 @@ public:
     Secret(const unsigned char* _message) :message((char *)_message) {}
 };
 
-class Destroy {
-public:
-    const char *message = nullptr;
-    Destroy() = default;
-    Destroy(const char* _message) :message(_message) {}
-};
-
 class Endl {};
 class Flush {};
+inline Endl endl;
+inline Flush flush;
 
-class OutStream {
+class SafeStream {
     private:
-        bool is_active = false;
         size_t line_count = 0;
+        const char *msg = nullptr;
 
     public:
+        SafeStream() = default;
+        SafeStream(const char *_msg) :msg(_msg) {}
+
+        ~SafeStream() {
+            // delete the printed data
+            if (line_count > 0) std::cout << "\033[" << line_count << "A";
+            std::cout << "\r\033[J";
+
+            // print the message and flush
+            if (msg != nullptr) {
+                std::cout << msg << std::endl;
+            }
+            else std::cout << std::flush;
+        }
+
+        SafeStream(const SafeStream&) = delete;
+        SafeStream& operator=(const SafeStream&) = delete;
+        SafeStream(SafeStream&&) = delete;
+        SafeStream& operator=(SafeStream&&) = delete;
+
+        void set_msg(const char *_msg) { msg = _msg; }
+        
         // catch C-strings
-        OutStream& operator<<(const char *str) {
+        SafeStream& operator<<(const char *str) {
             if (str != nullptr) {
                 for (int i = 0; str[i] != '\0'; i++) {
                     if (str[i] == '\n') line_count++;
                 }
                 std::cout << str;
             }
-            is_active = true;
 
             return *this;
         }
 
         // catch std::string
-        OutStream& operator<<(const std::string& str) {
+        SafeStream& operator<<(const std::string& str) {
             for (char c : str) {
                 if (c == '\n') line_count++;
             }
-            is_active = true;
-
             std::cout << str;
 
             return *this;
         }
 
         // catch single char
-        OutStream& operator<<(char ch) {
+        SafeStream& operator<<(char ch) {
             if (ch == '\n') line_count++;
-            is_active = true;
-
             std::cout << ch;
-
             return *this;
         }
 
         template <typename T>
-        OutStream& operator<<(const T& str) {
-            is_active = true;
-
+        SafeStream& operator<<(const T& str) {
             std::cout << str;
-
             return *this;
         }
 
         
-        OutStream& operator<<(const Secret& str) {
+        SafeStream& operator<<(const Secret& str) {
             if (str.message != nullptr) {
                 for (int i = 0; str.message[i] != '\0'; i++) {
                     if (str.message[i] == '\n') line_count++;
@@ -119,48 +137,20 @@ class OutStream {
                 std::cout << std::flush;
                 safe_write(str.message);
             }
-            is_active = true;
-
             return *this;
         }
 
-        OutStream& operator<<(const Flush&) {
-            if (is_active) std::cout << std::flush;
-
+        SafeStream& operator<<(const Flush&) {
+            std::cout << std::flush;
             return *this;
         }
 
-        OutStream& operator<<(const Endl&) {
-            if (is_active) {
-                std::cout << std::endl;
-                line_count++;
-            }
-
-            return *this;
-        }
-        
-        OutStream& operator<<(const Destroy& obj) {
-            if (is_active) {
-                // delete the printed data
-                if (line_count > 0) std::cout << "\033[" << line_count << "A";
-                std::cout << "\r\033[J";
-
-                // print the message and flush
-                if (obj.message != nullptr) {
-                    std::cout << obj.message << std::endl;
-                }
-                else std::cout << std::flush;
-
-                is_active = false;
-                line_count = 0;
-            }
-
+        SafeStream& operator<<(const Endl&) {
+            std::cout << std::endl;
+            line_count++;
             return *this;
         }
 };
 
-inline Endl endl;
-inline Flush flush;
-inline OutStream cout;
 
 }

@@ -64,9 +64,14 @@ class Vault {
 
         bool exists(crypto::SafeVar &name) { return dictionary.contains(name); }
 
-        const crypto::SafeVar *search(crypto::SafeVar &name) { 
+        crypto::SafeVar search(crypto::SafeVar &name) { 
+            crypto::SafeVar ret;
             auto it = dictionary.find(name);
-            return (it != dictionary.end()) ? &it->second : nullptr;
+            if (it != dictionary.end()) {
+                ret = it->second;
+                ret.decrypto(session_key.get(), false);
+            }
+            return ret;
         }
 
         long long get_size() { return disk_mang.get_size(); }

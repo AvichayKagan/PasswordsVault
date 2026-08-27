@@ -12,15 +12,15 @@ OBJ_DIR  := obj
 SRC_DIR  := src
 TARGET   := vault
 
-# 1. SRCS finds files in src/
-CPP_SRCS := $(wildcard $(SRC_DIR)/*.cpp)
-C_SRCS   := $(wildcard $(SRC_DIR)/*.c)
+# 1. Use the 'find' shell command to recursively find all .cpp and .c files in subdirectories
+CPP_SRCS := $(shell find $(SRC_DIR) -name '*.cpp')
+C_SRCS   := $(shell find $(SRC_DIR) -name '*.c')
 
-# 2. OBJS maps src/file.cpp to obj/file.o
+# 2. OBJS maps src/path/to/file.cpp to obj/path/to/file.o
 OBJS     := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(CPP_SRCS)) \
             $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(C_SRCS))
 
-# 3. DEPS maps obj/file.o to obj/file.d
+# 3. DEPS maps obj/path/to/file.o to obj/path/to/file.d
 DEPS     := $(OBJS:.o=.d)
 
 all: $(TARGET)
@@ -28,14 +28,14 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CXX) $(OBJS) $(LDFLAGS) -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+# Automatically create the specific subdirectory inside obj/ before compiling
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
 
 clean:
 	rm -rf $(OBJ_DIR) $(TARGET)

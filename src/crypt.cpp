@@ -75,3 +75,18 @@ SafeVar& SafeVar::hash(Salt salt) {
 
     return *this;
 }
+
+size_t SafeVar::short_hash(SafeVar &pepper, size_t inlen) const {
+    unsigned char out[short_hash_len]; 
+    size_t ret;
+
+    crypto_shorthash(
+        out,
+        ptr, inlen,
+        pepper.get()
+    );
+
+    std::memcpy(&ret, out, sizeof(size_t));
+
+    return ret;
+}

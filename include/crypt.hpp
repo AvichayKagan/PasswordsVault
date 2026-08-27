@@ -42,6 +42,7 @@ namespace crypto {
         public:
             static constexpr int nonce_len = crypto_aead_aes256gcm_NPUBBYTES;
             static constexpr int auth_tag_len = crypto_aead_aes256gcm_ABYTES;
+            static constexpr int short_hash_len = crypto_shorthash_BYTES;
             static constexpr int encryptoion_buff_len = nonce_len + auth_tag_len;
 
 
@@ -114,7 +115,7 @@ namespace crypto {
             
             unsigned char *get() const { return ptr; }
 
-            size_t get_size() { return size; }
+            size_t get_size() const { return size; }
 
             void memzero() { sodium_memzero(ptr, size); }
 
@@ -143,5 +144,9 @@ namespace crypto {
             void decrypto(Key key, bool no_corrupt);
 
             SafeVar &hash(Salt salt);
+
+            void short_hash_key_gen();
+
+            size_t short_hash(SafeVar &pepper, size_t inlen) const;
     };
 }

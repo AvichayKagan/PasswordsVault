@@ -14,7 +14,9 @@ struct SafeVarHash {
     public:
         SafeVarHash(crypto::SafeVar &_pepper) :pepper(_pepper) {}
 
-        std::size_t operator()(const crypto::SafeVar& obj) const; // must not except
+        size_t operator()(const crypto::SafeVar& obj) const {
+            return obj.short_hash(pepper, std::strlen((const char *)obj.get())); 
+        }
 };
 
 struct SafeVarEq {
@@ -25,7 +27,7 @@ struct SafeVarEq {
 
 class Dict final : private std::unordered_map<crypto::SafeVar, crypto::SafeVar, SafeVarHash, SafeVarEq> {
 private:
-    static constexpr int init_buckets = 10;
+    static constexpr int init_buckets = 10; // based this on the size of the file
 
     using Base = std::unordered_map<crypto::SafeVar, crypto::SafeVar, SafeVarHash, SafeVarEq>;
 public:

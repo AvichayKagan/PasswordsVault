@@ -46,15 +46,15 @@ void Shell::open() {
     else std::cout << "Incorrect Master Password. Please type 'open' in the shell to try again." << std::endl;
 }
 
-void Shell::list() { 
+void Shell::list() {
     if (vault.is_empty()) {
         std::cout << "Vault is empty." << std::endl;
         return;
     }
 
     safeio::SafeStream cout("The vault content has been listed.");
-    for (Dict::Node *i = vault.get_head(); i != nullptr; i = i->get_next() ) {
-        cout << safeio::Secret(i->name.get()) << safeio::endl;
+    for (const auto& i : vault) {
+        cout << safeio::Secret(i.first.get()) << safeio::endl;
     }
     cout << "\nPress any key to delete the list..." << safeio::flush;
     safeio::key_press();
@@ -171,6 +171,7 @@ void Shell::chpass() {
     }
 }
 
+
 void Shell::rename() {
     crypto::SafeVar new_name(config::max_name_len);
 
@@ -180,8 +181,14 @@ void Shell::rename() {
     }
 
     std::cout << "Please enter the new name for " << arg.get() << ": " << std::flush;
-    if (safeio::input(new_name.get(), config::max_name_len, false)) throw Error("Failed to take password from the user.");
-    
+    while (true) {
+        crypto::SafeVar master_password(config::max_password_len);
+        if (safeio::input(new_name.get(), config::max_name_len, false)) throw Error("Failed to take password from the user.");
+        if (*new_name.get() == '\0') return;
+
+        if (!vault.exists(new_name)) break;
+        std::cout << "The new name already exists in the vault! Please choose a different name or press enter to exit: " << std::flush;
+    }
 
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
     while (true) {

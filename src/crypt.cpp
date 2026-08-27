@@ -75,3 +75,32 @@ SafeVar& SafeVar::hash(Salt salt) {
 
     return *this;
 }
+
+void SafeVar::short_hash_pepper_gen(const char context[crypto_kdf_CONTEXTBYTES]) {
+    SafeVar dest(short_hash_pepper_len); 
+
+    crypto_kdf_derive_from_key(
+        dest.get(),
+        short_hash_pepper_len,
+        0,
+        context,
+        ptr
+    );
+
+    *this = std::move(dest);
+}
+
+size_t SafeVar::short_hash(const SafeVar &pepper, size_t inlen) const {
+    unsigned char out[short_hash_len]; 
+    size_t ret;
+
+    crypto_shorthash(
+        out,
+        ptr, inlen,
+        pepper.get()
+    );
+
+    std::memcpy(&ret, out, sizeof(size_t));
+
+    return ret;
+}

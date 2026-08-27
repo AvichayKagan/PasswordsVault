@@ -43,6 +43,7 @@ namespace crypto {
             static constexpr int nonce_len = crypto_aead_aes256gcm_NPUBBYTES;
             static constexpr int auth_tag_len = crypto_aead_aes256gcm_ABYTES;
             static constexpr int short_hash_len = crypto_shorthash_BYTES;
+            static constexpr int short_hash_pepper_len = crypto_shorthash_KEYBYTES;
             static constexpr int encryptoion_buff_len = nonce_len + auth_tag_len;
 
 
@@ -145,8 +146,8 @@ namespace crypto {
 
             SafeVar &hash(Salt salt);
 
-            void short_hash_key_gen();
+            void short_hash_pepper_gen(const char context[crypto_kdf_CONTEXTBYTES]);
 
-            size_t short_hash(SafeVar &pepper, size_t inlen) const;
+            size_t short_hash(const SafeVar &pepper, size_t inlen) const;
     };
 }

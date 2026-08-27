@@ -79,13 +79,14 @@ Vault::Sudo Vault::acquire_sudo(crypto::SafeVar &&master_password) {
 
 
 bool Vault::open_vault(crypto::SafeVar &master_passowrd) {
-    // init session key
+    // init session key and dictionary
     session_key.random();
+    dictionary.init();
 
     auto sudo = acquire_sudo(std::move(master_passowrd));
     if (!sudo) return false;
 
-    sudo.read(); // read the vault file using sudo
+    sudo.read();
 
     return true;
 }

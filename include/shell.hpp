@@ -68,6 +68,7 @@ class Shell {
         using MethodPtr = void (Shell::*)();
         static constexpr MethodPtr operations[] = {&Shell::open, &Shell::close, &Shell::exit, &Shell::help, &Shell::add, &Shell::list, &Shell::show, &Shell::del, &Shell::stats, &Shell::chpass, &Shell::rename, &Shell::chmaster};
         static constexpr int commands_has_arg[] = {false, false, false, false, true, false, true, true, false, true, true, false};
+        static constexpr int command_allowed_closed[] = {true, true, true, true, false, false, false, false, false, false, false, false};
 
     public:
         Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};

@@ -32,6 +32,11 @@ void Shell::help() {
 }
 
 void Shell::open() { 
+    if (vault.is_open()) {
+        std::cout << "The vault is already open, type 'help' to see available commands." << std::endl;
+        return;
+    }
+
     crypto::SafeVar master_password(config::max_password_len);
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
     if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
@@ -64,8 +69,11 @@ void Shell::stats() {
 }
 
 void Shell::close() { 
-    vault.close_vault();
-    std::cout << "Vault closed succesfully. Use 'open' to reopen it." << std::endl;
+    if (vault.is_open()) {
+        vault.close_vault();
+        std::cout << "Vault closed succesfully. Use 'open' to reopen it." << std::endl;
+    }
+    else std::cout << "The vault is already closed, please type 'open' to open it." << std::endl;
 }
 
 
@@ -224,12 +232,8 @@ void Shell::run() {
 
         if (!this->parse(input.get(), &code)) continue;
 
-        if (code != 0 && code != 2 && code != 3 && !vault.is_open()) { // 0  is code for open, 2 is code for exit, 3 is for help
-            if (code == 1) { // 1 is code for close
-                std::cout << "The vault is already closed, please type 'open' to open it." << std::endl;
-            }
-            else std::cout << "Cannot complete the operation, the vault is closed, please type 'open' to open it." << std::endl;
-
+        if (!vault.is_open() && !command_allowed_closed[code]) {
+            std::cout << "Cannot complete the operation, the vault is closed, please type 'open' to open it." << std::endl;
             continue;
         }
 

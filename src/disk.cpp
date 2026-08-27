@@ -105,7 +105,7 @@ void DiskManager::read_vault_data(Dict &dict, crypto::SafeVar &master_key, crypt
         password.encrypto(session_key.get());
         i += config::max_password_len;
 
-        dict.append_node(std::move(name), std::move(password));
+        dict.emplace(std::move(name), std::move(password));
     }
 }
 

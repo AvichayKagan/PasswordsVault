@@ -2,62 +2,56 @@
 
 #include <memory>
 #include <cstring>
+#include <iostream>
+#include <unordered_map>
 #include "configs.hpp"
 #include "crypt.hpp"
 
-
-class Dict {
-    public:
-        class Node;
-        
+struct SafeVarHash {
     private:
-        std::unique_ptr<Node> head;
-        Node *tail;
-        unsigned int node_count = 0;
-    
+        crypto::SafeVar pepper;
+
     public:
-        Dict() { tail = nullptr; } // head init to nullptr by default as unique pointer
+        SafeVarHash(crypto::SafeVar &session_key) :pepper(session_key) { pepper.short_hash_pepper_gen("HashMap"); }
 
-        Node *append_node(crypto::SafeVar &&name, crypto::SafeVar&& password) {
-            auto new_node = std::make_unique<Node>(std::move(password), std::move(name));
-            return append_node_raw(std::move(new_node));
+        size_t operator()(const crypto::SafeVar& obj) const {
+            return obj.short_hash(pepper, std::strlen((const char *)obj.get())); 
         }
-
-        Node *append_node_raw(std::unique_ptr<Node> new_node);
-
-        std::unique_ptr<Node> delete_node(Node *node, bool catch_);
-
-        Node *search(char *name);
-
-        Node *get_head() { return head.get(); }
-        
-        crypto::SafeVar pack(crypto::SafeVar &session_key, crypto::SafeVar &master_key);
-
-        unsigned int get_count() { return node_count; }
-
-        void empty() { head.reset(); tail = nullptr; node_count = 0; } // must not except
 };
 
+struct SafeVarEq {
+    bool operator()(const crypto::SafeVar &lhs, const crypto::SafeVar &rhs) const noexcept {
+        return !std::strcmp((const char *)lhs.get(), (const char *)rhs.get());
+    }
+};
 
+class Dict final : private std::unordered_map<crypto::SafeVar, crypto::SafeVar, SafeVarHash, SafeVarEq> {
+private:
+    static constexpr int init_buckets = 10; // based this on the size of the file
+    crypto::SafeVar &session_key;
+    using Base = std::unordered_map<crypto::SafeVar, crypto::SafeVar, SafeVarHash, SafeVarEq>;
 
+public:
+    // expose to public (we do not inherit public since std::unordered_map has no virtual destructor)
+    using Base::contains;
+    using Base::find;
+    using Base::insert;
+    using Base::erase;
+    using Base::end;
+    using Base::begin;
+    using Base::empty;
+    using Base::size;
+    using Base::emplace;
+    using Base::extract;
 
-class Dict::Node {
-    private:
-        std::unique_ptr<Node> next;
-        Node *prev;
+    Dict(crypto::SafeVar &_session_key) : Base(init_buckets, SafeVarHash(_session_key)), session_key(_session_key) {}
 
-    public:
-        friend class Dict;
+    void init() { Base::operator=(Base(init_buckets, SafeVarHash(session_key))); }
 
-        crypto::SafeVar password;
-        crypto::SafeVar name;
-        
-        Node(crypto::SafeVar &&password, crypto::SafeVar &&name) {
-            this->password = std::move(password);
-            this->name = std::move(name);
-            this->next = nullptr;
-            this->prev = nullptr;
-        }
+    void clear() {
+        crypto::SafeVar temp(crypto::key_len);
+        Base::operator=(Base(0, SafeVarHash(temp)));
+    }
 
-        Node *get_next() { return (this->next).get(); }
+    crypto::SafeVar pack(crypto::SafeVar &session_key, crypto::SafeVar &master_key);
 };

@@ -169,15 +169,16 @@ bool Vault::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypt
     if (!sudo) return false;
 
     auto node = dictionary.extract(name);
+
     crypto::SafeVar old_name = std::move(node.key());
     node.key() = std::move(new_name);
-    crypto::SafeVar &new_name_ref = node.key();
-    dictionary.insert(std::move(node));
+
+    auto inserted_node = dictionary.insert(std::move(node)).position;
     try {
         sudo.write();
     }
     catch (...) {
-        node = dictionary.extract(new_name_ref);
+        node = dictionary.extract(inserted_node);
         node.key() = std::move(old_name);
         dictionary.insert(std::move(node)); // noexcept?
         throw;

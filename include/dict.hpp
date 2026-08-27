@@ -9,17 +9,17 @@
 
 struct SafeVarHash {
     private:
-        crypto::SafeVar &salt;
+        crypto::SafeVar &pepper;
 
     public:
-        SafeVarHash(crypto::SafeVar &_salt) :salt(_salt) {}
+        SafeVarHash(crypto::SafeVar &_pepper) :pepper(_pepper) {}
 
         std::size_t operator()(const crypto::SafeVar& obj) const; // must not except
 };
 
 struct SafeVarEq {
     bool operator()(const crypto::SafeVar &lhs, const crypto::SafeVar &rhs) const noexcept {
-        return !strcmp((char *)lhs.get(), (char *)rhs.get());
+        return !std::strcmp((char *)lhs.get(), (char *)rhs.get());
     }
 };
 

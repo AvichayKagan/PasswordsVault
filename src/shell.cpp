@@ -116,16 +116,15 @@ void Shell::del() {
 }
 
 void Shell::show() {
-    const crypto::SafeVar *password = vault.search(arg);
+    crypto::SafeVar password = vault.search(arg);
 
-    if (password == nullptr) {
+    if (password.get() == nullptr) {
         std::cout << "No such name '"<< arg.get() << "' exists in the vault. you can add it using 'add'." << std::endl;
         return;
     }
 
     // must securley print this!
-    std::cout << "The password for '" << arg.get();
-    std::cout << "' is: '" << password->get() << "', Press any key to delete this massage, or 'v' to copy the password." << std::endl;
+    std::cout << "The password for '" << arg.get() << "' is: '" << password.get() << "', Press any key to delete this massage, or 'c' to copy the password." << std::endl;
 }
 
 
@@ -168,10 +167,10 @@ void Shell::rename() {
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
         if (safeIO::input(new_name.get(), config::max_name_len, false)) throw Error("Failed to take password from the user.");
-        if (*master_password.get() == '\0') break;
+        if (*new_name.get() == '\0') return;
 
-        if (!vault.exists(arg)) break;
-        std::cout << "The new name already exists in teh vault! Please choose a different name or press enter to exit: " << std::flush;
+        if (!vault.exists(new_name)) break;
+        std::cout << "The new name already exists in the vault! Please choose a different name or press enter to exit: " << std::flush;
     }
 
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;

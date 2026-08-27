@@ -27,7 +27,3 @@ crypto::SafeVar Dict::pack(crypto::SafeVar &session_key, crypto::SafeVar &master
 
     return vault_data;
 }
-
-std::size_t SafeVarHash::operator()(const crypto::SafeVar& obj) const {
-    return 0; // placeholder
-}

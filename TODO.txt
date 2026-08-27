@@ -1,0 +1,20 @@
+complete commands and flags, add frirnedlier cli (levennstein metirc etc..)
+commands to add:
+    copy command
+    import --del (will hash resize)
+    export
+    add --gen --len --copy
+    --info flag for each command with security ranks
+
+improve the parser and fix the safevar size issue
+minimixe the sudo master time for the disk write (sudo will pack not write)
+merge stats and info command to show data about session and vault size in both close and open states
+hide the passowrds coutn by the file size by pad incrementally on teh count
+make safevar into a template?
+maek the help command data driven and the entire shell.hpp into more clear struct data driven
+fix headers and soidum abstraction
+encrypt the names also
+add colors to terminal
+add reqs for master password
+catch signals
+add timeouts (threads)

@@ -7,6 +7,7 @@ commands to add:
     --info flag for each command with security ranks
 
 improve the parser and fix the safevar size issue
+fix namespaces
 minimixe the sudo master time for the disk write (sudo will pack not write)
 merge stats and info command to show data about session and vault size in both close and open states
 hide the passowrds coutn by the file size by pad incrementally on teh count

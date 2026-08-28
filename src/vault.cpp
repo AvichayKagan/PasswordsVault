@@ -79,9 +79,10 @@ Vault::Sudo Vault::acquire_sudo(crypto::SafeVar &&master_password) {
 
 
 bool Vault::open_vault(crypto::SafeVar &master_passowrd) {
+    size_t init_buckets = disk_mang.get_size() / (config::max_name_len + config::max_password_len);
     // init session key and dictionary
     session_key.random();
-    dictionary.init();
+    dictionary.init(session_key, init_buckets);
 
     auto sudo = acquire_sudo(std::move(master_passowrd));
     if (!sudo) return false;

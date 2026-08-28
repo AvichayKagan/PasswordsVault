@@ -39,7 +39,7 @@ class Vault {
     
     public:
 
-        Vault() :master_key_enc(crypto::key_len), session_key(crypto::key_len), dictionary(session_key) {
+        Vault() :master_key_enc(crypto::key_len), session_key(crypto::key_len) {
             if (disk_mang.get_size() == disk::DiskManager::pre_header_size) {
                 init_vault();
             }

@@ -80,9 +80,9 @@ class DiskManager {
 
         void read_vault_header(crypto::Salt salt, crypto::SafeVar &master_key);
 
-        void read_vault_data(Dict &dict, crypto::SafeVar &master_key, crypto::SafeVar &session_key);
+        crypto::SafeVar read_vault_data();
 
-        void atomic_write_file(Dict &dict, crypto::SafeVar &master_key, crypto::SafeVar &master_key_enc, crypto::SafeVar &session_key, crypto::Salt salt);
+        void atomic_write_file(crypto::SafeVar &master_key_enc, crypto::Salt salt, crypto::SafeVar &data);
 };
 
 }

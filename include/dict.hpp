@@ -50,7 +50,7 @@ class Dict final : private std::unordered_map<crypto::SafeVar, crypto::SafeVar, 
 
         Dict() = default;
 
-        Dict(crypto::SafeVar &_session_key, size_t init_buckets) : Base(init_buckets, SafeVarHash(_session_key)), session_key(_session_key) {}
+        Dict(crypto::SafeVar &_session_key, size_t vault_count) : Base(1.5 * vault_count, SafeVarHash(_session_key)), session_key(_session_key) {}
 
         crypto::SafeVar pack();
 

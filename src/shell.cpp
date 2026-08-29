@@ -40,7 +40,7 @@ void Shell::open() {
     crypto::SafeVar master_password(config::max_password_len);
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
     if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
-    if (vault.open_vault(master_password)) {
+    if (vault.open_vault(std::move(master_password))) {
         std::cout << "Vault opened succesfully." << std::endl;
     }
     else std::cout << "Incorrect Master Password. Please type 'open' in the shell to try again." << std::endl;
@@ -82,7 +82,7 @@ void Shell::add() {
     crypto::SafeVar name = arg;
     name.realloc(config::max_name_len);
 
-    if (vault.exists(name)) {
+    if (vault.contains(name)) {
         std::cout << "'" << name.get() << "' already exists in the vault. you can change its password using 'change' or delete it using 'del'." << std::endl;
         return;
     }
@@ -106,7 +106,7 @@ void Shell::add() {
 }
 
 void Shell::del() {
-    if (!vault.exists(arg)) {
+    if (!vault.contains(arg)) {
         std::cout << "Cannot delete '"<< arg.get() << "' as it doesn't exists in the vault." << std::endl;
         return;
     }
@@ -148,7 +148,7 @@ void Shell::show() {
 void Shell::chpass() {
     crypto::SafeVar password(config::max_password_len);
 
-    if (!vault.exists(arg)) {
+    if (!vault.contains(arg)) {
         std::cout << "No entry '"<< arg.get() << "' exists in the vault." << std::endl;
         return;
     }
@@ -175,7 +175,7 @@ void Shell::chpass() {
 void Shell::rename() {
     crypto::SafeVar new_name(config::max_name_len);
 
-    if (!vault.exists(arg)) {
+    if (!vault.contains(arg)) {
         std::cout << "No entry '"<< arg.get() << "' exists in the vault." << std::endl;
         return;
     }
@@ -186,7 +186,7 @@ void Shell::rename() {
         if (safeio::input(new_name.get(), config::max_name_len, false)) throw Error("Failed to take password from the user.");
         if (*new_name.get() == '\0') return;
 
-        if (!vault.exists(new_name)) break;
+        if (!vault.contains(new_name)) break;
         std::cout << "The new name already exists in the vault! Please choose a different name or press enter to exit: " << std::flush;
     }
 
@@ -229,7 +229,11 @@ void Shell::run() {
     crypto::SafeVar input(max_input_len);
     int code;
 
-    open();
+    
+    if (!vault.is_open()) {
+        std::cout << "Auto-Opening the Vault..." << std::endl;
+        open(); // could be pre opend in the case of init vault
+    }
 
     std::cout << "Shell is running, please enter commands to use the vault.." << std::endl;
 

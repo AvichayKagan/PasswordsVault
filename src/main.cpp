@@ -14,7 +14,6 @@ int main() {
 
         shell::Shell shell(vault);
 
-        std::cout << "Auto-Opening the Vault..." << std::endl;
         shell.run();
     }
     catch (const config::GeneralError& e) {

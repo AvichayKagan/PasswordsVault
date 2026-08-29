@@ -92,7 +92,6 @@ bool Vault::open_vault(crypto::SafeVar &&master_passowrd) {
 void Vault::init_vault() {
     crypto::SafeVar password(config::max_password_len);
     crypto::SafeVar password_hash;
-    crypto::SafeVar password_to_open;
     crypto::SafeVar data;
 
     master_key_enc.random();
@@ -102,13 +101,12 @@ void Vault::init_vault() {
     if (safeio::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.", ioError);
     
     password_hash = password;
-    password_to_open = password;
-
     password_hash.hash(salt);
+    
     master_key_enc.encrypto(password_hash.get());
     password_hash.memzero();
 
-    open_vault(std::move(password_to_open));
+    session = std::make_unique<Session>(0); // exacly like open for empty vault but bypass the read/write chicken and egg issue
 
     {
         auto sudo = acquire_sudo(std::move(password));

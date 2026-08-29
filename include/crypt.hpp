@@ -50,10 +50,11 @@ namespace crypto {
 
             SafeVar() = default;
 
-            SafeVar(size_t size) {
+            SafeVar(size_t size, bool random = false) {
                 this->size = size + encryptoion_buff_len;
                 this->ptr = (unsigned char *)sodium_malloc(this->size);
                 if (this->ptr == nullptr) throw std::bad_alloc();
+                if (random) randombytes(ptr, size - encryptoion_buff_len);
             };
 
             ~SafeVar() { if (ptr != nullptr) sodium_free(ptr); }

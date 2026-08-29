@@ -2,14 +2,14 @@
 #include "vault.hpp"
 #include "safe_io.hpp"
 
-using namespace vault;
+namespace vault {
 
 
 class Vault::Sudo {
     private:
-        bool sudo = false;
         Vault &vault;
         crypto::SafeVar master_key;
+        bool sudo = false;
 
     public:
 
@@ -36,21 +36,13 @@ class Vault::Sudo {
         void write() { 
             if (!sudo) throw Error("Attempted to make sudo operation with no sudo privileges", PremissionError);
 
-            vault.disk_mang.atomic_write_file(vault.dictionary, master_key, vault.master_key_enc, vault.session_key, vault.salt); 
+            vault.disk_mang.atomic_write_file(vault.session->dictionary, master_key, vault.master_key_enc, vault.session->session_key, vault.salt); 
         }
 
         void read() {
             if (!sudo) throw Error("Attempted to make sudo operation with no sudo privileges", PremissionError);
 
-            try {
-                vault.disk_mang.read_vault_data(vault.dictionary, master_key, vault.session_key);
-            }
-            catch (...) { 
-                vault.dictionary.clear(); 
-                throw;
-            }
-
-            vault._is_open = true;
+            vault.disk_mang.read_vault_data(vault.session->dictionary, master_key, vault.session->session_key);
         }
 
         void change_master(crypto::SafeVar &new_master) {
@@ -78,16 +70,21 @@ Vault::Sudo Vault::acquire_sudo(crypto::SafeVar &&master_password) {
 }
 
 
-bool Vault::open_vault(crypto::SafeVar &master_passowrd) {
+bool Vault::open_vault(crypto::SafeVar &&master_passowrd) {
     size_t init_buckets = disk_mang.get_size() / (config::max_name_len + config::max_password_len);
-    // init session key and dictionary
-    session_key.random();
-    dictionary.init(session_key, init_buckets);
 
     auto sudo = acquire_sudo(std::move(master_passowrd));
     if (!sudo) return false;
 
-    sudo.read();
+    // create a session
+    session = std::make_unique<Session>(init_buckets);
+    try {
+        sudo.read();
+    }
+    catch (...) {
+        session.reset();
+        throw;
+    }
 
     return true;
 }
@@ -96,6 +93,7 @@ bool Vault::open_vault(crypto::SafeVar &master_passowrd) {
 void Vault::init_vault() {
     crypto::SafeVar password(config::max_password_len);
     crypto::SafeVar password_hash;
+    crypto::SafeVar password_to_open;
 
     master_key_enc.random();
     crypto::random(salt, crypto::salt_len);
@@ -104,26 +102,29 @@ void Vault::init_vault() {
     if (safeio::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.", ioError);
     
     password_hash = password;
+    password_to_open = password;
+
     password_hash.hash(salt);
     master_key_enc.encrypto(password_hash.get());
     password_hash.memzero();
 
     auto sudo = acquire_sudo(std::move(password));
-    if (!sudo) throw std::runtime_error("ASSERT ERROR");
     sudo.write();
+
+    open_vault(std::move(password_to_open));
 }
 
 bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd) {
     auto sudo = acquire_sudo(std::move(master_passowrd));
     if (!sudo) return false;
 
-    password.encrypto(session_key.get());
-    auto name_it = dictionary.emplace(std::move(name), std::move(password)).first;
+    password.encrypto(session->session_key.get());
+    auto name_it = session->dictionary.emplace(std::move(name), std::move(password)).first;
     try {
         sudo.write();
     }
     catch (...) {
-        dictionary.erase(name_it);
+        session->dictionary.erase(name_it);
         throw;
     }
 
@@ -135,12 +136,12 @@ bool Vault::del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowr
     auto sudo = acquire_sudo(std::move(master_passowrd));
     if (!sudo) return false;
 
-    auto node = dictionary.extract(name);
+    auto node = session->dictionary.extract(name);
     try {
         sudo.write();
     }
     catch (...) {
-        dictionary.insert(std::move(node)); // noexcept?
+        session->dictionary.insert(std::move(node)); // noexcept?
         throw;
     }
      
@@ -151,9 +152,9 @@ bool Vault::change_password(crypto::SafeVar &name, crypto::SafeVar &&password, c
     auto sudo = acquire_sudo(std::move(master_passowrd));
     if (!sudo) return false;
 
-    auto target = dictionary.find(name);
+    auto target = session->dictionary.find(name);
     crypto::SafeVar old_password = target->second;
-    password.encrypto(session_key.get());
+    password.encrypto(session->session_key.get());
     target->second = std::move(password);
     try {
         sudo.write();
@@ -170,19 +171,19 @@ bool Vault::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypt
     auto sudo = acquire_sudo(std::move(master_passowrd));
     if (!sudo) return false;
 
-    auto node = dictionary.extract(name);
+    auto node = session->dictionary.extract(name);
 
     crypto::SafeVar old_name = std::move(node.key());
     node.key() = std::move(new_name);
 
-    auto inserted_node = dictionary.insert(std::move(node)).position;
+    auto inserted_node = session->dictionary.insert(std::move(node)).position;
     try {
         sudo.write();
     }
     catch (...) {
-        node = dictionary.extract(inserted_node);
+        node = session->dictionary.extract(inserted_node);
         node.key() = std::move(old_name);
-        dictionary.insert(std::move(node)); // noexcept?
+        session->dictionary.insert(std::move(node)); // noexcept?
         throw;
     }
     
@@ -198,3 +199,16 @@ bool Vault::change_master(crypto::SafeVar &new_master, crypto::SafeVar &&master_
     return true;
 }
 
+
+crypto::SafeVar Vault::search(crypto::SafeVar &name) { 
+    crypto::SafeVar ret;
+    auto it = session->dictionary.find(name);
+    if (it != session->dictionary.end()) {
+        ret = it->second;
+        ret.decrypto(session->session_key.get(), false);
+    }
+    return ret;
+}
+
+
+}

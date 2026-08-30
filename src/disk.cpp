@@ -13,6 +13,7 @@ using namespace disk;
     #include <io.h>
 
     int os_flush(FILE* file) {
+        if (!fflush(file)) return -1;
         int fd = _fileno(file);
         if (fd == -1) return -1;
         HANDLE hFile = (HANDLE)_get_osfhandle(fd);
@@ -27,6 +28,7 @@ using namespace disk;
     #include <cerrno>
 
     int os_flush(FILE* file) {
+        if (!fflush(file)) return -1;
         int fd = fileno(file);
         if (fd == -1) return -1;
         if (fcntl(fd, F_FULLFSYNC, 0) == -1) {
@@ -42,6 +44,7 @@ using namespace disk;
     #include <unistd.h>
 
     int os_flush(FILE* file) {
+        if (!fflush(file)) return -1;
         int fd = fileno(file);
         if (fd == -1) return -1;
         return fsync(fd);
@@ -138,8 +141,7 @@ void DiskManager::atomic_write_file(Dict &dict, crypto::SafeVar &master_key, cry
         if (fwrite(vault_data.get(), 1, vault_data.get_size(), temp.get()) != vault_data.get_size()) throw Error("Failed to write vault data to temp file.", WriteError);
 
         // flush the temp
-        if (fflush(temp.get()) != 0) throw Error("Failed to fflush vault data.", FlushError);
-        if (os_flush(temp.get()) != 0) throw Error("Failed to OS flush vault data.", FlushError);
+        if (!os_flush(temp.get())) throw Error("Failed to OS flush vault data.", FlushError);
 
         // close the files
         file.reset();

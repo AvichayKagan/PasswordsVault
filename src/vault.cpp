@@ -49,13 +49,15 @@ class Vault::Sudo {
             sudo = false;
         }
 
-        void change_master(crypto::SafeVar &new_master, crypto::SafeVar &data) {
+        void change_master(crypto::SafeVar &&new_master, crypto::SafeVar &data) {
             if (!sudo) throw Error("Sudo token is invalid or has been expired", PremissionError);
-        
+            
             new_master.hash(vault.salt);
             vault.master_key_enc = master_key; // if throw master_key_enc is remain as it is
             vault.master_key_enc.encrypto(new_master.get()); //canont throw
             encrypt(data);
+            
+            crypto::SafeVar temp = std::move(new_master); // destroy the new_name
         }
       
 };
@@ -240,7 +242,7 @@ bool Vault::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypt
     return true;
 }
 
-bool Vault::change_master(crypto::SafeVar &new_master, crypto::SafeVar &&master_password) {
+bool Vault::change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_password) {
     crypto::SafeVar old_master_key_enc = master_key_enc;
     crypto::SafeVar data = session->dictionary.pack();
     bool changed = false;
@@ -250,7 +252,7 @@ bool Vault::change_master(crypto::SafeVar &new_master, crypto::SafeVar &&master_
             auto sudo = acquire_sudo(std::move(master_password));
             if (!sudo) return false;
 
-            sudo.change_master(new_master, data); // the change to revert in case of exception
+            sudo.change_master(std::move(new_master), data); // the change to revert in case of exception
             changed = true;
         } // sudo destroyed here
 

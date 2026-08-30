@@ -54,7 +54,7 @@ namespace crypto {
                 this->size = size + encryptoion_buff_len;
                 this->ptr = (unsigned char *)sodium_malloc(this->size);
                 if (this->ptr == nullptr) throw std::bad_alloc();
-                if (random) randombytes(ptr, size - encryptoion_buff_len);
+                if (random) randombytes(ptr, size);
             };
 
             ~SafeVar() { if (ptr != nullptr) sodium_free(ptr); }

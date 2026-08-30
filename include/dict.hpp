@@ -30,9 +30,12 @@ struct SafeVarEq {
 
 class Dict final : private std::unordered_map<crypto::SafeVar, crypto::SafeVar, SafeVarHash, SafeVarEq> {
     private:
+        crypto::SafeVar &session_key;
         using Base = std::unordered_map<crypto::SafeVar, crypto::SafeVar, SafeVarHash, SafeVarEq>;
 
     public:
+        using Base::iterator;
+        using node = Base::node_type;
         // expose to public (we do not inherit public since std::unordered_map has no virtual destructor)
         using Base::contains;
         using Base::find;
@@ -47,7 +50,9 @@ class Dict final : private std::unordered_map<crypto::SafeVar, crypto::SafeVar, 
 
         Dict() = default;
 
-        Dict(crypto::SafeVar &session_key, size_t init_buckets) : Base(init_buckets, SafeVarHash(session_key)) {}
+        Dict(crypto::SafeVar &_session_key, size_t vault_count) : Base(1.5 * vault_count, SafeVarHash(_session_key)), session_key(_session_key) {}
 
-        crypto::SafeVar pack(crypto::SafeVar &session_key, crypto::SafeVar &master_key);
+        crypto::SafeVar pack();
+
+        void load(crypto::SafeVar &data);
 };

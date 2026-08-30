@@ -34,14 +34,19 @@ enum ErrorCode {
 
 class DiskManager {
     private:
-        FILE *file;
+        struct Deleter {
+            void operator()(FILE* file) const { fclose(file); }
+        };
+        
+        using SafeFILE = std::unique_ptr<FILE, Deleter>;
+        SafeFILE file;
 
 
         static constexpr unsigned long long pre_header  = 0xDB1D26A4734EB42CLL;
 
         void verify_pre_header();
         void write_vault_pre_header() {
-            if (!fwrite(&pre_header, sizeof(unsigned long long), 1, file)) throw Error("Couldn't write pre-header to disk.", WriteError);
+            if (!fwrite(&pre_header, sizeof(unsigned long long), 1, file.get())) throw Error("Couldn't write pre-header to disk.", WriteError);
         }
 
     public:
@@ -49,28 +54,20 @@ class DiskManager {
         static constexpr int header_size = crypto::salt_len + crypto::SafeVar::nonce_len + crypto::key_len + crypto::SafeVar::auth_tag_len;
         static constexpr int pre_plus_header_size = pre_header_size + header_size;
 
-        DiskManager() {
-            int create = 0;
-            std::error_code ec;
-
+        DiskManager() : file(fopen(config::vault_path, "rb+")) {
             // clean up orphaned temp file
+            std::error_code ec;
             std::filesystem::remove(config::vault_path_temp, ec);
 
-            file = fopen(config::vault_path, "rb+");
-            if (file == nullptr) create = 1;
-
-            if (create) {
-                file = fopen(config::vault_path, "wb+");
+            if (!file) {
+                file.reset(fopen(config::vault_path, "wb+"));
                 if (file == nullptr) throw Error("Failed to found and create Vault file.", CreateError);
                 write_vault_pre_header();
             }
             else verify_pre_header();
         }
 
-        ~DiskManager() {
-            if (file != nullptr) fclose(file);
-        }
-
+        ~DiskManager() = default;
         DiskManager(const DiskManager& other) = delete;
         DiskManager& operator=(const DiskManager& other) = delete;
         DiskManager(DiskManager&& other) = delete;

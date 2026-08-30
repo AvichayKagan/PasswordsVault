@@ -52,16 +52,16 @@ using namespace disk;
 
 void DiskManager::verify_pre_header() { // here we assume little endian, for portabilit change this in the future
     unsigned long long pre_header_read;
-    size_t read_count = fread(&pre_header_read, sizeof(unsigned long long), 1, file);
+    size_t read_count = fread(&pre_header_read, sizeof(unsigned long long), 1, file.get());
 
     if (read_count != 1 || pre_header_read != pre_header) throw Error("Vault header doesn't match.", WrongPreHeader);
 }
 
 
 long long DiskManager::get_size() {
-    if (fseek(file, 0, SEEK_END) != 0) throw Error("Failed to seek to end of the vault file", SeekError);
+    if (fseek(file.get(), 0, SEEK_END) != 0) throw Error("Failed to seek to end of the vault file", SeekError);
 
-    int file_size = ftell(file);
+    int file_size = ftell(file.get());
     if (file_size == -1L) throw Error("Failed to seek to end of the vault file", TellError);
 
     return file_size;
@@ -71,13 +71,13 @@ void DiskManager::read_vault_header(crypto::Salt salt, crypto::SafeVar &master_k
     size_t encryptoed_key_len = crypto::key_len + crypto::SafeVar::encryptoion_buff_len;
 
     // seek header start
-    if (fseek(file, pre_header_size, SEEK_SET) != 0) throw Error("Failed to seek the header location in the vault file.", SeekError);
+    if (fseek(file.get(), pre_header_size, SEEK_SET) != 0) throw Error("Failed to seek the header location in the vault file.", SeekError);
 
     // read salt
-    if (fread(salt, 1, crypto::salt_len, file) != crypto::salt_len) throw Error("Failed to read the salt from the disk.", ReadError);
+    if (fread(salt, 1, crypto::salt_len, file.get()) != crypto::salt_len) throw Error("Failed to read the salt from the disk.", ReadError);
 
     // read master key (encryptoed)
-    if (fread(master_key.get(), 1, encryptoed_key_len, file) != encryptoed_key_len) throw Error("Failed to read the master key from the disk.", ReadError);
+    if (fread(master_key.get(), 1, encryptoed_key_len, file.get()) != encryptoed_key_len) throw Error("Failed to read the master key from the disk.", ReadError);
 }
 
 
@@ -87,8 +87,8 @@ void DiskManager::read_vault_data(Dict &dict, crypto::SafeVar &master_key, crypt
     size_t i = 0;
 
     // read the data to buffer and decrypt
-    if (fseek(file, pre_plus_header_size, SEEK_SET) != 0) throw Error("Failed to seek the header location in the vault file.", SeekError);
-    if (fread(vault_data.get(), 1, read_len, file) != read_len) throw Error("Failed to read vault data.", ReadError);
+    if (fseek(file.get(), pre_plus_header_size, SEEK_SET) != 0) throw Error("Failed to seek the header location in the vault file.", SeekError);
+    if (fread(vault_data.get(), 1, read_len, file.get()) != read_len) throw Error("Failed to read vault data.", ReadError);
     vault_data.decrypto(master_key.get(), false);
 
     // load the dictionary
@@ -108,65 +108,65 @@ void DiskManager::read_vault_data(Dict &dict, crypto::SafeVar &master_key, crypt
         dict.emplace(std::move(name), std::move(password));
     }
 }
+template <typename T>
+bool retry(T func, int times = 5, int delay = 10) {
+    for (int i = 0; i < times; i++) {
+        if (i != 0) std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+        if (func()) return true;
+    }
+    return false;
+}
 
 
 void DiskManager::atomic_write_file(Dict &dict, crypto::SafeVar &master_key, crypto::SafeVar &master_key_enc, crypto::SafeVar &session_key, crypto::Salt salt) {
     crypto::SafeVar vault_data = dict.pack(session_key, master_key);
-    FILE *temp = fopen(config::vault_path_temp, "wb+");
+    SafeFILE temp(fopen(config::vault_path_temp, "wb+"));
     if (temp == nullptr) throw Error("Failed to create the temp vault file.", CreateError);
 
     bool renamed = false;
     try {
         // write pre header
-        if (!fwrite(&pre_header, sizeof(unsigned long long), 1, temp)) throw Error("Couldn't write pre-header to temp file.", WriteError);
+        if (!fwrite(&pre_header, sizeof(unsigned long long), 1, temp.get())) throw Error("Couldn't write pre-header to temp file.", WriteError);
 
         // write salt
-        if (fwrite(salt, 1, crypto::salt_len, temp) != crypto::salt_len) throw Error("Failed to write the salt to temp file.", WriteError);
+        if (fwrite(salt, 1, crypto::salt_len, temp.get()) != crypto::salt_len) throw Error("Failed to write the salt to temp file.", WriteError);
 
         // write master key (encryptoed)
-        if (fwrite(master_key_enc.get(), 1, master_key_enc.get_size(), temp) != master_key_enc.get_size()) throw Error("Failed to write the master key to temp file.", WriteError);
+        if (fwrite(master_key_enc.get(), 1, master_key_enc.get_size(), temp.get()) != master_key_enc.get_size()) throw Error("Failed to write the master key to temp file.", WriteError);
 
         // write data to temp file
-        if (fwrite(vault_data.get(), 1, vault_data.get_size(), temp) != vault_data.get_size()) throw Error("Failed to write vault data to temp file.", WriteError);
+        if (fwrite(vault_data.get(), 1, vault_data.get_size(), temp.get()) != vault_data.get_size()) throw Error("Failed to write vault data to temp file.", WriteError);
 
         // flush the temp
-        if (fflush(temp) != 0) throw Error("Failed to fflush vault data.", FlushError);
-        if (os_flush(temp) != 0) throw Error("Failed to OS flush vault data.", FlushError);
+        if (fflush(temp.get()) != 0) throw Error("Failed to fflush vault data.", FlushError);
+        if (os_flush(temp.get()) != 0) throw Error("Failed to OS flush vault data.", FlushError);
 
         // close the files
-        fclose(file);
-        file = nullptr;
-        fclose(temp);
-        temp = nullptr;
+        file.reset();
+        temp.reset();
 
         // rename & swap
         std::error_code ec;
-        for (int i = 0; i < 5; i++) {
+        if (!retry([&]() {
             std::filesystem::rename(config::vault_path_temp, config::vault_path, ec);
-            if (!ec) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-        if (ec) throw Error("Failed swap temp with file with vault file.", RenameError);
+            return !ec;
+        })) throw Error("Failed swap temp with file with vault file: " + ec.message(), RenameError);
         renamed = true;
 
         // re-open the file
-        for (int i = 0; i < 5; i++) {
-            file = fopen(config::vault_path, "rb+");
-            if (file != nullptr) return;
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-        throw config::FatalError("Failed re-open the vault post atomic renmae.", "DISK", OpenError);
+        if (!retry([&]() {
+            file.reset(fopen(config::vault_path, "rb+"));
+            return file != nullptr;
+        })) throw config::FatalError("Failed re-open the vault post atomic renmae.", "DISK", OpenError);
     }
     catch (...) {
-        if (temp != nullptr) fclose(temp);
+        temp.reset();
         if (!renamed) {
             std::error_code ec;
-            for (int i = 0; i < 5; i++) {
+            if (!retry([&]() {
                 std::filesystem::remove(config::vault_path_temp, ec);
-                if (!ec) break;
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-            if (ec) std::cerr << "WARNING: Failed to clean up temp file: " << config::vault_path_temp << ": " << ec.message() << "\n";
+                return !ec;
+            })) std::cerr << "WARNING: Failed to clean up temp file: " << config::vault_path_temp << ": " << ec.message() << "\n";
         }
         throw;
     }

@@ -95,7 +95,7 @@ crypto::SafeVar DiskManager::read_vault_data() {
     return vault_data;
 }
 template <typename T>
-bool retry(T func, int times = 5, int delay = 10) {
+static bool retry(T func, int times = 5, int delay = 10) {
     for (int i = 0; i < times; i++) {
         if (i != 0) std::this_thread::sleep_for(std::chrono::milliseconds(delay));
         if (func()) return true;

@@ -31,7 +31,7 @@ class Vault {
             crypto::SafeVar session_key;
             Dict dictionary;
 
-            Session(size_t init_buckets) : session_key(crypto::key_len, true), dictionary(session_key, init_buckets) {}
+            Session(size_t vault_count) : session_key(crypto::key_len, true), dictionary(session_key, vault_count) {}
             ~Session() = default;
             Session(const Session&) = delete;
             Session& operator=(const Session&) = delete;
@@ -77,7 +77,7 @@ class Vault {
 
         bool change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypto::SafeVar &&master_passowrd);
 
-        bool change_master(crypto::SafeVar &new_master, crypto::SafeVar &&master_passowrd);
+        bool change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_passowrd);
 
         bool contains(crypto::SafeVar &name) { return session->dictionary.contains(name); }
 

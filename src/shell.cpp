@@ -66,12 +66,27 @@ void Shell::list() {
     safeio::key_press();
 }
 
-void Shell::stats() {
-    int size = vault.get_size();
-    int count = vault.get_count();
+void Shell::info() {
+    bool is_open = vault.is_open();
+    int size = is_open ? vault.get_size() : -1;
+    int count = is_open ? vault.get_count() : -1;
+    const char *state = is_open ? "OPEN" : "CLOSED";
+    
+    std::cout << " === Vault Status ===" << "\n\n";
+    std::cout << " Path:   ./vault.bin" << '\n';
+    std::cout << " State: " << state << '\n';
 
-    std::cout << "Total passwords in the vault: " << count << std::endl;
-    std::cout << "Vault file size is: " << size << " Bytes." << std::endl;
+    if (is_open) {
+        int noise = 100 - (100*count) / ((size - disk::DiskManager::pre_plus_header_size - crypto::SafeVar::encryptoion_buff_len)/(config::max_name_len + config::max_password_len));
+
+        std::cout << '\n';
+        std::cout << " -- Storage Metrics --" << '\n';
+        std::cout << " Passwords Count: " << count << '\n';
+        std::cout << " Disk Footprint: " << size << '\n';
+        std::cout << " Noise Overhead: ~" << noise << "%\n";
+    }
+
+    std::cout << "\n ====================" << std::endl;
 }
 
 void Shell::close() { 

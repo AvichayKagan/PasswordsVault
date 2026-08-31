@@ -71,7 +71,7 @@ class Shell {
         static constexpr int command_allowed_closed[] = {true, true, true, true, false, false, false, false, false, false, false, false};
 
     public:
-        Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};
+        explicit Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};
 
         ~Shell() { vault.close_vault(); }
 

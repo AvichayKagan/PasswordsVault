@@ -35,8 +35,8 @@ public:
 class Secret {
 public:
     const char *message;
-    Secret(const char* _message) :message(_message) {}
-    Secret(const unsigned char* _message) :message((char *)_message) {}
+    explicit Secret(const char* _message) :message(_message) {}
+    explicit Secret(const unsigned char* _message) :message((char *)_message) {}
 };
 
 class Endl {};
@@ -51,7 +51,7 @@ class SafeStream {
 
     public:
         SafeStream() = default;
-        SafeStream(const char *_msg) :msg(_msg) {}
+        explicit SafeStream(const char *_msg) :msg(_msg) {}
 
         ~SafeStream() {
             // delete the printed data

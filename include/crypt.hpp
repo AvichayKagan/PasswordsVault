@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <utility>
+#include <memory>
 #include <new>
 #include "sodium.h"
 #include "configs.hpp"
@@ -36,8 +37,16 @@ namespace crypto {
 
     class SafeVar {
         private:
+            struct Deleter {
+                void operator()(unsigned char* ptr) const { sodium_free(ptr); }
+            };
+
+            using SafePtr = std::unique_ptr<unsigned char[], Deleter>;
+            
             size_t size = 0; // total allocated size in bytes
-            unsigned char *ptr = nullptr;
+            SafePtr ptr;
+            // contract: ptr == nullptr <=> size == 0
+
         
         public:
             static constexpr int nonce_len = crypto_aead_aes256gcm_NPUBBYTES;
@@ -50,94 +59,79 @@ namespace crypto {
 
             SafeVar() = default;
 
-            SafeVar(size_t size, bool random = false) {
-                this->size = size + encryptoion_buff_len;
-                this->ptr = (unsigned char *)sodium_malloc(this->size);
-                if (this->ptr == nullptr) throw std::bad_alloc();
-                if (random) randombytes(ptr, size);
+            explicit SafeVar(size_t _size, bool random = false) : size(_size + encryptoion_buff_len), ptr((unsigned char *)sodium_malloc(size)) {
+                if (ptr == nullptr) throw std::bad_alloc();
+                if (random) randombytes(ptr.get(), _size);
             };
 
-            ~SafeVar() { if (ptr != nullptr) sodium_free(ptr); }
+            ~SafeVar() = default;
             
-            SafeVar(const SafeVar& other) {
-                if (other.size == 0) return;
-
-                this->size = other.size;
-                this->ptr = (unsigned char *)sodium_malloc(other.size);
-                if (this->ptr == nullptr) throw std::bad_alloc();
-                std::memcpy(this->ptr, other.ptr, this->size);
+            SafeVar(const SafeVar& other) :size(other.size) {
+                if (size == 0) return;
+                
+                ptr.reset((unsigned char *)sodium_malloc(size));
+                if (ptr == nullptr) throw std::bad_alloc();
+                std::memcpy(ptr.get(), other.ptr.get(), size);
             }
 
             SafeVar& operator=(const SafeVar& other) {
                 if (this == &other) return *this;
 
                 // same size optimization (no realloc)
-                if (this->size == other.size) {
-                    if (this->ptr != nullptr) std::memcpy(this->ptr, other.ptr, this->size);
+                if (size == other.size) {
+                    if (ptr != nullptr) std::memcpy(ptr.get(), other.ptr.get(), size);
                     return *this;
                 }
 
 
                 // set a new memory pointer for 'this'
-                unsigned char *temp = nullptr;
+                SafePtr temp;
                 if (other.size != 0) {
-                    temp = (unsigned char *)sodium_malloc(other.size);
+                    temp.reset((unsigned char *)sodium_malloc(other.size));
                     if (temp == nullptr) throw std::bad_alloc();
-                    std::memcpy(temp, other.ptr,  other.size);
+                    std::memcpy(temp.get(), other.ptr.get(),  other.size);
                 }
 
                 // set the this object
-                this->size = other.size;
-                if (this->ptr != nullptr) sodium_free(this->ptr);
-                this->ptr = temp;
+                size = other.size;
+                ptr = std::move(temp);
 
                 return *this;
             }
 
-            SafeVar(SafeVar&& other) noexcept {
-                this->size = other.size;
-                this->ptr = other.ptr;
-                other.size = 0;
-                other.ptr = nullptr;
-            }
+            SafeVar(SafeVar&& other) noexcept : size(other.size), ptr(std::move(other.ptr)) { other.size = 0; }
 
             SafeVar& operator=(SafeVar&& other) noexcept {
                 if (this == &other) return *this;
 
-                if (this->ptr != nullptr) sodium_free(this->ptr);
-
-                this->size = other.size;
-                this->ptr = other.ptr;
+                size = other.size;
                 other.size = 0;
-                other.ptr = nullptr;
+                ptr = std::move(other.ptr);
 
                 return *this;
             }
 
             
-            unsigned char *get() const { return ptr; }
+            unsigned char *get() const { return ptr.get(); }
 
             size_t get_size() const { return size; }
 
-            void memzero() { sodium_memzero(ptr, size); }
+            void memzero() { sodium_memzero(ptr.get(), size); }
 
             // never use on encrypted data
             void realloc(size_t new_size) { 
-                size_t total_new_size = new_size + encryptoion_buff_len;
-                
-                unsigned char *new_ptr = (unsigned char *)sodium_malloc(total_new_size);
-                if (new_ptr == nullptr) throw std::bad_alloc();
+                SafeVar temp(new_size);
 
-                size_t copy_len = (total_new_size < size) ? new_size : size - encryptoion_buff_len;
-                std::memcpy(new_ptr, ptr, copy_len);
+                if (ptr != nullptr) {
+                    size_t copy_len = (new_size + encryptoion_buff_len < size) ? new_size : size - encryptoion_buff_len;
+                    std::memcpy(temp.ptr.get(), ptr.get(), copy_len);
+                }
 
-                sodium_free(ptr);
-                size = total_new_size;
-                ptr = new_ptr;
+                *this = std::move(temp);
             }
 
             SafeVar &random() { 
-                randombytes(ptr, size - encryptoion_buff_len); 
+                randombytes(ptr.get(), size - encryptoion_buff_len); 
                 return *this;
             }
             

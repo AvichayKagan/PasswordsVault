@@ -2,9 +2,9 @@
 #include <stdexcept>
 #include "crypt.hpp"
 
-using namespace crypto;
+namespace crypto {
 
-void crypto::crypt_init() {
+void crypt_init() {
     if (sodium_init() < 0) {
         throw Error("Cryptographic sequence failed to initialized.", ErrorCode::InitFail);
     }
@@ -14,7 +14,7 @@ void crypto::crypt_init() {
     }
 }
 
-unsigned char* crypto::random(unsigned char *target, size_t len) { 
+unsigned char* random(unsigned char *target, size_t len) { 
     randombytes(target, len); 
     return target;
 }
@@ -104,3 +104,5 @@ size_t SafeVar::short_hash(const SafeVar &pepper, size_t inlen) const {
 
     return ret;
 }
+
+} // namesapce crypto

@@ -5,7 +5,17 @@
 #include <chrono>
 #include "disk.hpp"
 
-using namespace disk;
+namespace {
+
+template <typename T>
+bool retry(T func, int times = 5, int delay = 10) {
+    for (int i = 0; i < times; i++) {
+        if (i != 0) std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+        if (func()) return true;
+    }
+    return false;
+}
+
 
 #ifdef _WIN32
     // --- WINDOWS ---
@@ -13,7 +23,7 @@ using namespace disk;
     #include <io.h>
 
     int os_flush(FILE* file) {
-        if (!fflush(file)) return -1;
+        if (std::fflush(file)) return -1;
         int fd = _fileno(file);
         if (fd == -1) return -1;
         HANDLE hFile = (HANDLE)_get_osfhandle(fd);
@@ -28,7 +38,7 @@ using namespace disk;
     #include <cerrno>
 
     int os_flush(FILE* file) {
-        if (!fflush(file)) return -1;
+        if (std::fflush(file)) return -1;
         int fd = fileno(file);
         if (fd == -1) return -1;
         if (fcntl(fd, F_FULLFSYNC, 0) == -1) {
@@ -44,13 +54,19 @@ using namespace disk;
     #include <unistd.h>
 
     int os_flush(FILE* file) {
-        if (!fflush(file)) return -1;
+        if (std::fflush(file)) return -1;
         int fd = fileno(file);
         if (fd == -1) return -1;
         return fsync(fd);
     }
 
 #endif
+
+
+} // anonymous namespace
+
+
+namespace disk {
 
 
 void DiskManager::verify_pre_header() { // here we assume little endian, for portabilit change this in the future
@@ -62,9 +78,9 @@ void DiskManager::verify_pre_header() { // here we assume little endian, for por
 
 
 long long DiskManager::get_size() {
-    if (fseek(file.get(), 0, SEEK_END) != 0) throw Error("Failed to seek to end of the vault file", SeekError);
+    if (std::fseek(file.get(), 0, SEEK_END) != 0) throw Error("Failed to seek to end of the vault file", SeekError);
 
-    int file_size = ftell(file.get());
+    int file_size = std::ftell(file.get());
     if (file_size == -1L) throw Error("Failed to seek to end of the vault file", TellError);
 
     return file_size;
@@ -74,7 +90,7 @@ void DiskManager::read_vault_header(crypto::Salt salt, crypto::SafeVar &master_k
     size_t encryptoed_key_len = crypto::key_len + crypto::SafeVar::encryptoion_buff_len;
 
     // seek header start
-    if (fseek(file.get(), pre_header_size, SEEK_SET) != 0) throw Error("Failed to seek the header location in the vault file.", SeekError);
+    if (std::fseek(file.get(), pre_header_size, SEEK_SET) != 0) throw Error("Failed to seek the header location in the vault file.", SeekError);
 
     // read salt
     if (std::fread(salt, 1, crypto::salt_len, file.get()) != crypto::salt_len) throw Error("Failed to read the salt from the disk.", ReadError);
@@ -89,18 +105,10 @@ crypto::SafeVar DiskManager::read_vault_data() {
     crypto::SafeVar vault_data(read_len - crypto::SafeVar::encryptoion_buff_len);
 
     // read the data to buffer and decrypt
-    if (fseek(file.get(), pre_plus_header_size, SEEK_SET) != 0) throw Error("Failed to seek the header location in the vault file.", SeekError);
+    if (std::fseek(file.get(), pre_plus_header_size, SEEK_SET) != 0) throw Error("Failed to seek the header location in the vault file.", SeekError);
     if (std::fread(vault_data.get(), 1, read_len, file.get()) != read_len) throw Error("Failed to read vault data.", ReadError);
 
     return vault_data;
-}
-template <typename T>
-static bool retry(T func, int times = 5, int delay = 10) {
-    for (int i = 0; i < times; i++) {
-        if (i != 0) std::this_thread::sleep_for(std::chrono::milliseconds(delay));
-        if (func()) return true;
-    }
-    return false;
 }
 
 
@@ -155,3 +163,5 @@ void DiskManager::atomic_write_file(crypto::SafeVar &master_key_enc, crypto::Sal
         throw;
     }
 }
+
+} // namespace disk

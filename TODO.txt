@@ -8,7 +8,6 @@ commands to add:
 
 improve the parser and fix the safevar size issue
 make the vault module itself safe and check for its arguments ("password does not exists in vault")
-fix namespaces
 merge stats and info command to show data about session and vault size in both close and open states
 hide the passowrds count by the file size by pad incrementally on teh count
 make safevar into a template?

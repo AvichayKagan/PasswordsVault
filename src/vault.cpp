@@ -82,8 +82,8 @@ bool Vault::open_vault(crypto::SafeVar &&master_passowrd) {
         auto sudo = acquire_sudo(std::move(master_passowrd));
         if (!sudo) return false;
         sudo.decrypt(data);
-        temp->dictionary.load(data);
     } // sudo destroyed here
+    temp->dictionary.load(data);
 
     // no exceptions, commit to temp
     session = std::move(temp);
@@ -110,10 +110,10 @@ void Vault::init_vault() {
     password_hash.memzero();
 
     session = std::make_unique<Session>(0); // exacly like open for empty vault but bypass the read/write chicken and egg issue
+    data = session->dictionary.pack();
 
     {
         auto sudo = acquire_sudo(std::move(password));
-        data = session->dictionary.pack();
         sudo.encrypt(data);
     }
     

@@ -4,24 +4,25 @@
 #include "dict.hpp"
 
 
-crypto::SafeVar Dict::pack() {
+crypto::SafeVar Dict::pack() const {
     size_t write_len = size() * (config::max_name_len + config::max_password_len);
     crypto::SafeVar vault_data(write_len);
+    crypto::SafeVar password;
     int j = 0;
     
     // load the buffer
     for (auto& i : *this) {
-        crypto::SafeVar& password = i.second;
+        // get the password
+        password = i.second;
+        password.decrypto(session_key.get(), false);
 
         // write the name
         std::memcpy(vault_data.get() + j, i.first.get(), config::max_name_len);
         j += config::max_name_len;
 
         // write the password
-        password.decrypto(session_key.get(), false);
         std::memcpy(vault_data.get() + j, password.get(), config::max_password_len);
         j += config::max_password_len;
-        password.encrypto(session_key.get());
     }
 
     return vault_data;

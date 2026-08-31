@@ -9,9 +9,8 @@ commands to add:
 improve the parser and fix the safevar size issue
 make the vault module itself safe and check for its arguments ("password does not exists in vault")
 fix namespaces
-minimixe the sudo master time for the disk write (sudo will pack not write)
 merge stats and info command to show data about session and vault size in both close and open states
-hide the passowrds coutn by the file size by pad incrementally on teh count
+hide the passowrds count by the file size by pad incrementally on teh count
 make safevar into a template?
 maek the help command data driven and the entire shell.hpp into more clear struct data driven
 fix headers and soidum abstraction

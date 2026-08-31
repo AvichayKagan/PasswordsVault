@@ -52,7 +52,7 @@ class Dict final : private std::unordered_map<crypto::SafeVar, crypto::SafeVar, 
 
         Dict(crypto::SafeVar &_session_key, size_t vault_count) : Base(1.5 * vault_count, SafeVarHash(_session_key)), session_key(_session_key) {}
 
-        crypto::SafeVar pack();
+        crypto::SafeVar pack() const;
 
         void load(crypto::SafeVar &data);
 };

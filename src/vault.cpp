@@ -13,8 +13,7 @@ class Vault::Sudo {
 
     public:
 
-        Sudo(Vault &_vault, crypto::SafeVar &&_master_password) : vault(_vault), master_key(vault.master_key_enc) {
-            crypto::SafeVar master_password = std::move(_master_password);
+        Sudo(Vault &_vault, crypto::SafeVar master_password) : vault(_vault), master_key(vault.master_key_enc) {
             try {
                 master_password.hash(vault.salt);
                 master_key.decrypto(master_password.get(), true);
@@ -49,15 +48,13 @@ class Vault::Sudo {
             sudo = false;
         }
 
-        void change_master(crypto::SafeVar &&new_master, crypto::SafeVar &data) {
+        void change_master(crypto::SafeVar new_master, crypto::SafeVar &data) {
             if (!sudo) throw Error("Sudo token is invalid or has been expired", PremissionError);
             
             new_master.hash(vault.salt);
             vault.master_key_enc = master_key; // if throw master_key_enc is remain as it is
             vault.master_key_enc.encrypto(new_master.get()); //canont throw
             encrypt(data);
-            
-            crypto::SafeVar temp = std::move(new_master); // destroy the new_name
         }
       
 };
@@ -83,7 +80,7 @@ bool Vault::open_vault(crypto::SafeVar &&master_passowrd) {
         if (!sudo) return false;
         sudo.decrypt(data);
     } // sudo destroyed here
-    temp->dictionary.load(data);
+    temp->dictionary.load(std::move(data));
 
     // no exceptions, commit to temp
     session = std::move(temp);

@@ -66,7 +66,7 @@ void Shell::info() {
     int count = is_open ? vault->get_count() : -1;
     const char *state = is_open ? "OPEN" : "CLOSED";
     
-    std::cout << " === Vault Status ===" << "\n\n";
+    std::cout << " ==== Vault Status ====" << "\n\n";
     std::cout << " Path:   ./vault.bin" << '\n';
     std::cout << " State: " << state << '\n';
 
@@ -76,12 +76,12 @@ void Shell::info() {
         std::cout << '\n';
         std::cout << " -- Storage Metrics --" << '\n';
         std::cout << " Passwords Count: " << count << '\n';
-        std::cout << " Disk Footprint: " << size << '\n';
+        std::cout << " File Size: " << size << " Bytes\n";
         std::cout << " Noise Overhead: ~" << noise << "%\n";
     }
 
-    std::cout << "\n ====================" << std::endl;
-}
+    std::cout << "\n ======================" << std::endl;
+}                  
 
 void Shell::close() { 
     if (vault->is_open()) {

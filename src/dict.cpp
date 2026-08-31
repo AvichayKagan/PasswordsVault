@@ -32,7 +32,7 @@ crypto::SafeVar Dict::pack() const {
     return vault_data;
 }
 
-void Dict::load(crypto::SafeVar &data){
+void Dict::load(crypto::SafeVar data){
     size_t read_len = data.get_size();
     size_t i = 0;
 

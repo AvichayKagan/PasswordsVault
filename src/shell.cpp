@@ -31,14 +31,8 @@ void Shell::help() {
               << std::endl;
 }
 
-
-void Shell::exit() { 
-    if (vault.is_open()) vault.close_vault(); // technically non needed but safer and adds no overhead (without it it will be triggered later)
-    is_running = false;
-}
-
 void Shell::open() { 
-    if (vault.is_open()) {
+    if (vault->is_open()) {
         std::cout << "The vault is already open, type 'help' to see available commands." << std::endl;
         return;
     }
@@ -46,20 +40,20 @@ void Shell::open() {
     crypto::SafeVar master_password(config::max_password_len);
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
     if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
-    if (vault.open_vault(std::move(master_password))) {
+    if (vault->open_vault(std::move(master_password))) {
         std::cout << "Vault opened succesfully." << std::endl;
     }
     else std::cout << "Incorrect Master Password. Please type 'open' in the shell to try again." << std::endl;
 }
 
 void Shell::list() {
-    if (vault.is_empty()) {
+    if (vault->is_empty()) {
         std::cout << "Vault is empty." << std::endl;
         return;
     }
 
     safeio::SafeStream cout("The vault content has been listed.");
-    for (const auto& i : vault) {
+    for (const auto& i : *vault) {
         cout << safeio::Secret(i.first.get()) << safeio::endl;
     }
     cout << "\nPress any key to delete the list..." << safeio::flush;
@@ -67,9 +61,9 @@ void Shell::list() {
 }
 
 void Shell::info() {
-    bool is_open = vault.is_open();
-    int size = is_open ? vault.get_size() : -1;
-    int count = is_open ? vault.get_count() : -1;
+    bool is_open = vault->is_open();
+    int size = is_open ? vault->get_size() : -1;
+    int count = is_open ? vault->get_count() : -1;
     const char *state = is_open ? "OPEN" : "CLOSED";
     
     std::cout << " === Vault Status ===" << "\n\n";
@@ -90,8 +84,8 @@ void Shell::info() {
 }
 
 void Shell::close() { 
-    if (vault.is_open()) {
-        vault.close_vault();
+    if (vault->is_open()) {
+        vault->close_vault();
         std::cout << "Vault closed succesfully. Use 'open' to reopen it." << std::endl;
     }
     else std::cout << "The vault is already closed, please type 'open' to open it." << std::endl;
@@ -103,7 +97,7 @@ void Shell::add() {
     crypto::SafeVar name = arg;
     name.realloc(config::max_name_len);
 
-    if (vault.contains(name)) {
+    if (vault->contains(name)) {
         std::cout << "'" << name.get() << "' already exists in the vault. you can change its password using 'change' or delete it using 'del'." << std::endl;
         return;
     }
@@ -118,7 +112,7 @@ void Shell::add() {
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
-        if (vault.add_password(std::move(name), std::move(password), std::move(master_password))) {
+        if (vault->add_password(std::move(name), std::move(password), std::move(master_password))) {
             std::cout << "Password has been added to the vault." << std::endl;
             break;
         }
@@ -127,7 +121,7 @@ void Shell::add() {
 }
 
 void Shell::del() {
-    if (!vault.contains(arg)) {
+    if (!vault->contains(arg)) {
         std::cout << "Cannot delete '"<< arg.get() << "' as it doesn't exists in the vault." << std::endl;
         return;
     }
@@ -139,7 +133,7 @@ void Shell::del() {
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
         
-        if (vault.del_password(arg, std::move(master_password))) {
+        if (vault->del_password(arg, std::move(master_password))) {
             std::cout << arg.get() << " has been deleted from the vault." << std::endl;
             break;
         }
@@ -148,7 +142,7 @@ void Shell::del() {
 }
 
 void Shell::show() {
-    crypto::SafeVar password = vault.search(arg);
+    crypto::SafeVar password = vault->search(arg);
 
     if (password.get() == nullptr) {
         std::cout << "No such name '"<< arg.get() << "' exists in the vault. you can add it using 'add'." << std::endl;
@@ -169,7 +163,7 @@ void Shell::show() {
 void Shell::chpass() {
     crypto::SafeVar password(config::max_password_len);
 
-    if (!vault.contains(arg)) {
+    if (!vault->contains(arg)) {
         std::cout << "No entry '"<< arg.get() << "' exists in the vault." << std::endl;
         return;
     }
@@ -184,7 +178,7 @@ void Shell::chpass() {
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
-        if (vault.change_password(arg, std::move(password), std::move(master_password))) {
+        if (vault->change_password(arg, std::move(password), std::move(master_password))) {
             std::cout << "Password has been change successfully." << std::endl;
             break;
         }
@@ -196,7 +190,7 @@ void Shell::chpass() {
 void Shell::rename() {
     crypto::SafeVar new_name(config::max_name_len);
 
-    if (!vault.contains(arg)) {
+    if (!vault->contains(arg)) {
         std::cout << "No entry '"<< arg.get() << "' exists in the vault." << std::endl;
         return;
     }
@@ -207,7 +201,7 @@ void Shell::rename() {
         if (safeio::input(new_name.get(), config::max_name_len, false)) throw Error("Failed to take password from the user.");
         if (*new_name.get() == '\0') return;
 
-        if (!vault.contains(new_name)) break;
+        if (!vault->contains(new_name)) break;
         std::cout << "The new name already exists in the vault! Please choose a different name or press enter to exit: " << std::flush;
     }
 
@@ -217,7 +211,7 @@ void Shell::rename() {
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
-        if (vault.change_name(arg, std::move(new_name), std::move(master_password))) {
+        if (vault->change_name(arg, std::move(new_name), std::move(master_password))) {
             std::cout << "Name has been change successfully." << std::endl;
             break;
         }
@@ -238,7 +232,7 @@ void Shell::chmaster() {
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
-        if (vault.change_master(std::move(new_master), std::move(master_password))) {
+        if (vault->change_master(std::move(new_master), std::move(master_password))) {
             std::cout << "Master password has been change successfully." << std::endl;
             break;
         }
@@ -250,21 +244,27 @@ void Shell::run() {
     crypto::SafeVar input(max_input_len);
     int code;
 
+    if (vault == nullptr) {
+        crypto::SafeVar master_password(config::max_password_len);
+        std::cout << "Please choose and enter a master password for the new vault: " << std::flush;
+        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.");
+        vault = std::make_unique<vault::Vault>(std::move(master_password));
+    }
     
-    if (!vault.is_open()) {
-        std::cout << "Auto-Opening the Vault..." << std::endl;
+    if (!vault->is_open()) {
+        std::cout << "Auto-Opening the vault..." << std::endl;
         open(); // could be pre opend in the case of init vault
     }
 
-    std::cout << "Shell is running, please enter commands to use the vault.." << std::endl;
+    std::cout << "Shell is running, please enter commands to use the vault..." << std::endl;
 
-    while (is_running) {
+    while (vault != nullptr) {
         std::cout << std::endl;
         if (safeio::input(input.get(), max_input_len, false)) throw Error("Failed to read command from the user.");
 
         if (!this->parse(input.get(), &code)) continue;
 
-        if (!vault.is_open() && !commands[code].allow_close) {
+        if (!vault->is_open() && !commands[code].allow_close) {
             std::cout << "Cannot complete the operation, the vault is closed, please type 'open' to open it." << std::endl;
             continue;
         }

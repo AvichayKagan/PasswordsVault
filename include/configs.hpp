@@ -9,6 +9,7 @@ namespace config {
     constexpr int max_password_len = 64 ;
     constexpr const char *vault_path = "./vault.bin";
     constexpr const char *vault_path_temp = "./vault.temp";
+    constexpr size_t vault_file_padding_factor = 20; // every 20 password the vault file size will increase (masking the password count from the vault file size)
 
 
     class GeneralError : public std::runtime_error {

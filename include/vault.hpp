@@ -42,7 +42,7 @@ class Vault {
         crypto::Salt salt;
         crypto::SafeVar master_key_enc;
         disk::DiskManager disk_mang;
-        std::unique_ptr<Session> session;
+        std::unique_ptr<Session> session; // add some sort of check that this is not null for all operations to prevent segfault
 
         void init_vault();
         class Sudo;

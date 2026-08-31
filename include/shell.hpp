@@ -13,10 +13,9 @@ class Error : public config::GeneralError {
 
 class Shell {
     private:
-        vault::Vault &vault;
+        std::unique_ptr<vault::Vault> vault;
         crypto::SafeVar command;
         crypto::SafeVar arg;
-        bool is_running = true;
 
         // internal helpers
 
@@ -39,7 +38,7 @@ class Shell {
         // non sudo
         void list();
         void show();
-        void exit();
+        void exit() { vault.reset(); }
         void help();
         void info();
         void close();
@@ -82,14 +81,21 @@ class Shell {
         + config::max_name_len + config::max_password_len + 1; // 1 for null terminator
 
     public:
-        explicit Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};
+        Shell() : command(max_input_len), arg(max_input_len) {
+            if (!safeio::is_interactive_terminal()) throw config::FatalError("The vault can only be run in an interactive terminal.", "IO");
+            if (safeio::set_terminal()) throw config::FatalError("Failed to initiate safe terminal.", "IO");
 
-        ~Shell() { vault.close_vault(); }
+            try {
+                vault = std::make_unique<vault::Vault>();
+            }
+            catch (const vault::Error& e) {
+                if (e.code() != vault::InitError) throw;
+            }
+        };
 
-        Shell(const Shell&) = delete;
-        Shell& operator=(const Shell&) = delete;
-        Shell(Shell&&) = delete;
-        Shell& operator=(Shell&&) = delete;
+        ~Shell() { 
+            if (safeio::set_terminal()) std::cerr << "Warning: failed to restore terminal settings!\n"; 
+        }
 
         void run();
 };

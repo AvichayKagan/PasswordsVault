@@ -92,18 +92,14 @@ bool Vault::open_vault(crypto::SafeVar &&master_passowrd) {
 }
 
 
-void Vault::init_vault() {
-    crypto::SafeVar password(config::max_password_len);
+void Vault::init_vault(crypto::SafeVar &&master_passowrd) {
     crypto::SafeVar password_hash;
     crypto::SafeVar data;
 
     master_key_enc.random();
     crypto::random(salt, crypto::salt_len);
-
-    std::cout << "Please choose and enter a master password for the new vault: " << std::flush;
-    if (safeio::input(password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.", ioError);
     
-    password_hash = password;
+    password_hash = master_passowrd;
     password_hash.hash(salt);
     
     master_key_enc.encrypto(password_hash.get());
@@ -113,7 +109,7 @@ void Vault::init_vault() {
     data = session->dictionary.pack();
 
     {
-        auto sudo = acquire_sudo(std::move(password));
+        auto sudo = acquire_sudo(std::move(master_passowrd));
         sudo.encrypt(data);
     }
     

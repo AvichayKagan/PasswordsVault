@@ -21,7 +21,9 @@ class Error : public config::GeneralError {
 enum ErrorCode {
     ioError = 1,
 
-    PremissionError = 10
+    PremissionError = 10,
+
+    InitError = 20
 };
 
 class Vault {
@@ -44,18 +46,22 @@ class Vault {
         disk::DiskManager disk_mang;
         std::unique_ptr<Session> session; // add some sort of check that this is not null for all operations to prevent segfault
 
-        void init_vault();
         class Sudo;
         Sudo acquire_sudo(crypto::SafeVar &&master_password);
     
     public:
 
-        Vault() :master_key_enc(crypto::key_len) {
-            if (disk_mang.get_size() == disk::DiskManager::pre_header_size) {
-                init_vault();
+        Vault(crypto::SafeVar &&master_password = crypto::SafeVar()) :master_key_enc(crypto::key_len) {
+            if (master_password.get() != nullptr) {
+                init_vault(std::move(master_password));
             }
-            else disk_mang.read_vault_header(salt, master_key_enc);
+            else if (disk_mang.get_size() != disk::DiskManager::pre_header_size) {
+                disk_mang.read_vault_header(salt, master_key_enc);
+            }
+            else throw Error("Vault file does not exist", InitError);
         }
+
+        void init_vault(crypto::SafeVar &&master_password);
 
         bool open_vault(crypto::SafeVar &&master_passowrd);
 

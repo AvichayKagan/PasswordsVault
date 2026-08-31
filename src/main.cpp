@@ -6,14 +6,8 @@
 
 int main() {
     try {
-        if (!safeio::is_interactive_terminal()) throw std::runtime_error("The vault can only be run in an interactive terminal.");
-        safeio::SafeTerminal safe_terminal_token;
         crypto::crypt_init();
-
-        vault::Vault vault;
-
-        shell::Shell shell(vault);
-
+        shell::Shell shell;
         shell.run();
     }
     catch (const config::GeneralError& e) {

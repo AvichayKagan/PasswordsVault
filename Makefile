@@ -1,3 +1,5 @@
+MAKEFLAGS += -j12
+
 CXX      := g++
 # Added -MMD and -MP to automatically generate .d files
 CXXFLAGS := -g -std=c++20 -Wall -Wextra -Iinclude -DSODIUM_STATIC -MMD -MP

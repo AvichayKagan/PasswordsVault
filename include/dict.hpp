@@ -54,5 +54,5 @@ class Dict final : private std::unordered_map<crypto::SafeVar, crypto::SafeVar, 
 
         crypto::SafeVar pack() const;
 
-        void load(crypto::SafeVar &data);
+        void load(crypto::SafeVar data);
 };

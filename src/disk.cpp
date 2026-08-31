@@ -131,7 +131,7 @@ void DiskManager::atomic_write_file(crypto::SafeVar &master_key_enc, crypto::Sal
         if (std::fwrite(data.get(), 1, data.get_size(), temp.get()) != data.get_size()) throw Error("Failed to write vault data to temp file.", WriteError);
 
         // flush the temp
-        if (!os_flush(temp.get())) throw Error("Failed to OS flush vault data.", FlushError);
+        if (os_flush(temp.get())) throw Error("Failed to OS flush vault data.", FlushError);
 
         // close the files
         file.reset();

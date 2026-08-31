@@ -278,4 +278,4 @@ crypto::SafeVar Vault::search(crypto::SafeVar &name) {
 }
 
 
-}
+} // namespace vault

@@ -82,4 +82,4 @@ class DiskManager {
         void atomic_write_file(crypto::SafeVar &master_key_enc, crypto::Salt salt, crypto::SafeVar &data);
 };
 
-}
+} // namespace disk

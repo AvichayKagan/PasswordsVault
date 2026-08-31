@@ -1,6 +1,6 @@
 #include "shell.hpp"
 
-using namespace shell;
+namespace shell {
 
 int Shell::get_code() {
     int code;
@@ -313,3 +313,5 @@ bool Shell::parse(unsigned char *input, int *code) {
 
     return true;
 }
+
+} // namespace shell

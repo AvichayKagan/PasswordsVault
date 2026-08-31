@@ -39,10 +39,7 @@ class Shell {
         // non sudo
         void list();
         void show();
-        void exit() { 
-            if (vault.is_open()) vault.close_vault(); // technically non needed but safer and adds no overhead (without it it will be triggered later)
-            is_running = false;
-         }
+        void exit();
         void help();
         void stats();
         void close();

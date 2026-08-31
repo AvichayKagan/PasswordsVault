@@ -31,7 +31,7 @@ class Vault {
             crypto::SafeVar session_key;
             Dict dictionary;
 
-            Session(size_t vault_count) : session_key(crypto::key_len, true), dictionary(session_key, vault_count) {}
+            explicit Session(size_t vault_count) : session_key(crypto::key_len, true), dictionary(session_key, vault_count) {}
             ~Session() = default;
             Session(const Session&) = delete;
             Session& operator=(const Session&) = delete;

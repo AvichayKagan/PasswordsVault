@@ -22,7 +22,7 @@ int is_interactive_terminal() {
 int set_terminal() {
     static int set = 0;
 
-    if (set) reutrn 0;
+    if (set) return 0;
 
     // Get the handle to the standard output (the console)
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);

@@ -1,6 +1,7 @@
 complete commands and flags, add frirnedlier cli (levennstein metirc etc..)
 commands to add:
-    copy command
+    copy
+    search
     import --del (will hash resize)
     export
     add --gen --len --copy
@@ -12,7 +13,9 @@ make the vault module itself safe and check for its arguments ("password does no
 
 make safevar into a template?
 
-maek the help command data driven and the entire shell.hpp into more clear struct data driven
+fix the directory for encapsulation
+
+refcator shell.cpp using teh data driven commands definition
 
 fix headers and soidum abstraction
 

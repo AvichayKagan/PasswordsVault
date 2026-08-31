@@ -5,8 +5,8 @@ namespace shell {
 int Shell::get_code() {
     int code;
 
-    for (code = 0; commands[code] != nullptr; code++) {
-        if (!std::strcmp(commands[code], (char *)command.get())) return code;
+    for (code = 0; commands[code].name != nullptr; code++) {
+        if (!std::strcmp(commands[code].name, (char *)command.get())) return code;
     }
 
     return -1; // code for none
@@ -264,14 +264,14 @@ void Shell::run() {
 
         if (!this->parse(input.get(), &code)) continue;
 
-        if (!vault.is_open() && !command_allowed_closed[code]) {
+        if (!vault.is_open() && !commands[code].allow_close) {
             std::cout << "Cannot complete the operation, the vault is closed, please type 'open' to open it." << std::endl;
             continue;
         }
 
         try {
             std::cout << std::endl;
-            (this->*operations[code])(); // execute the command
+            (this->*commands[code].method)(); // execute the command
         } 
         catch (const config::FatalError& e) {
             throw;
@@ -308,7 +308,7 @@ bool Shell::parse(unsigned char *input, int *code) {
     }
 
     while (std::isspace(*input)) input++;
-     if (*input == '\0' && commands_has_arg[*code]) {
+     if (*input == '\0' && commands[*code].has_arg) {
         std::cout << "Missing argument." << std::endl;
         return false;
     }

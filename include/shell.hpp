@@ -26,6 +26,7 @@ class Shell {
 
         void reset() { arg.memzero(); command.memzero(); }
 
+
         // vault user operations
 
         // sudo
@@ -35,7 +36,6 @@ class Shell {
         void chpass();
         void rename();
         void chmaster();
-
         // non sudo
         void list();
         void show();
@@ -44,31 +44,42 @@ class Shell {
         void info();
         void close();
 
-
-        // static constexpr data (centrelize in struct instead of multiple arrays)
-        // add sudo boolean to that and DRY the sudo prompt in the shell implementation calls
-        // add allowed when vault is closed boolean
-
-        static constexpr const char * const commands[] = {"open", "close", "exit", "help", "add", "list", "show", "del", "info", "chpass", "rename", "chmaster", nullptr};
-        // remainding are: search
-        // flags: gen for passwrod gen and copy flag, update help accordinally
+        
+        using MethodPtr = void (Shell::*)();
+        static constexpr struct {
+            const char *name;
+            MethodPtr method;
+            bool allow_close; // does not promise same behaviour in clsoe and open state
+            bool has_arg;
+            bool sudo;
+        } commands[] = {
+          // name        method ptr    allow_close  has_args  sudo
+            {"open",     &Shell::open,     true,    false,    true },
+            {"close",    &Shell::close,    true,    false,    false},
+            {"exit",     &Shell::exit,     true,    false,    false},
+            {"help",     &Shell::help,     true,    false,    false},
+            {"add",      &Shell::add,      false,   true,     true },
+            {"list",     &Shell::list,     false,   false,    false},
+            {"show",     &Shell::show,     false,   true,     false},
+            {"del",      &Shell::del,      false,   true,     true },
+            {"info",     &Shell::info,     true,    false,    false},
+            {"chpass",   &Shell::chpass,   false,   true,     true },
+            {"rename",   &Shell::rename,   false,   true,     true },
+            {"chmaster", &Shell::chmaster, false,   false,    true },
+            {} //sentinel
+        };
 
         static constexpr int max_input_len = []() {
-                int max_len = 0;
+            int max_len = 0;
 
-            for (int i = 0; commands[i] != nullptr; i++) {
-                int new_len = std::string_view(*commands).length();
+            for (int i = 0; commands[i].name != nullptr; i++) {
+                int new_len = std::string_view(commands->name).length();
                 if (max_len < new_len) max_len = new_len;
             }
 
             return max_len;
         } ()
         + config::max_name_len + config::max_password_len + 1; // 1 for null terminator
-
-        using MethodPtr = void (Shell::*)();
-        static constexpr MethodPtr operations[] = {&Shell::open, &Shell::close, &Shell::exit, &Shell::help, &Shell::add, &Shell::list, &Shell::show, &Shell::del, &Shell::info, &Shell::chpass, &Shell::rename, &Shell::chmaster};
-        static constexpr int commands_has_arg[] = {false, false, false, false, true, false, true, true, false, true, true, false};
-        static constexpr int command_allowed_closed[] = {true, true, true, true, false, false, false, false, true, false, false, false};
 
     public:
         explicit Shell(vault::Vault &vault) : vault(vault), command(max_input_len), arg(max_input_len) {};

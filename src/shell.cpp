@@ -31,6 +31,12 @@ void Shell::help() {
               << std::endl;
 }
 
+
+void Shell::exit() { 
+    if (vault.is_open()) vault.close_vault(); // technically non needed but safer and adds no overhead (without it it will be triggered later)
+    is_running = false;
+}
+
 void Shell::open() { 
     if (vault.is_open()) {
         std::cout << "The vault is already open, type 'help' to see available commands." << std::endl;

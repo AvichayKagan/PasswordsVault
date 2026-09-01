@@ -5,67 +5,30 @@
 namespace vault {
 
 
-class Vault::Sudo {
-    private:
-        Vault &vault;
-        crypto::SafeVar master_key;
-        bool sudo = false;
+bool Vault::flush(crypto::SafeVar master_password) {
+    crypto::SafeVar master_key = master_key_enc;
+    master_password.hash(salt);
 
-    public:
+    try {
+        master_key.decrypto(master_password.get(), true);
+    }
+    catch (const crypto::Error& e) {
+        if (e.code() == crypto::IncorrectPassword) return false;
+        throw;
+    }
 
-        Sudo(Vault &_vault, crypto::SafeVar master_password) : vault(_vault), master_key(vault.master_key_enc) {
-            try {
-                master_password.hash(vault.salt);
-                master_key.decrypto(master_password.get(), true);
-                sudo = true;
-            }
-            catch (const crypto::Error& e) {
-                if (e.code() != crypto::IncorrectPassword) throw;
-            }
-        }
+    crypto::SafeVar data = session->dictionary.pack();
+    data.encrypto(master_key.get());
+    master_password.memzero();
+    master_key.memzero();
 
-        ~Sudo() = default;
-        Sudo(const Sudo&) = delete;
-        Sudo& operator=(const Sudo&) = delete;
-        Sudo(Sudo&&) = delete;
-        Sudo& operator=(Sudo&&) = delete;
+    disk_mang.atomic_write_file(master_key_enc, salt, data);
 
-        explicit operator bool() { return sudo; }
-
-        void encrypt(crypto::SafeVar &data) { 
-            if (!sudo) throw Error("Sudo token is invalid or has been expired", PremissionError);
-
-            data.encrypto(master_key.get()); 
-            master_key.memzero();
-            sudo = false;
-        }
-
-        void decrypt(crypto::SafeVar &data) { 
-            if (!sudo) throw Error("Sudo token is invalid or has been expired", PremissionError);
-
-            data.decrypto(master_key.get(), false); 
-            master_key.memzero();
-            sudo = false;
-        }
-
-        void change_master(crypto::SafeVar new_master, crypto::SafeVar &data) {
-            if (!sudo) throw Error("Sudo token is invalid or has been expired", PremissionError);
-            
-            new_master.hash(vault.salt);
-            vault.master_key_enc = master_key; // if throw master_key_enc is remain as it is
-            vault.master_key_enc.encrypto(new_master.get()); //canont throw
-            encrypt(data);
-        }
-      
-};
-
-
-Vault::Sudo Vault::acquire_sudo(crypto::SafeVar &&master_password) {
-    return Vault::Sudo(*this, std::move(master_password));
+    return true;
 }
 
 
-bool Vault::open_vault(crypto::SafeVar &&master_passowrd) {
+bool Vault::open_vault(crypto::SafeVar master_passowrd) {
     size_t init_buckets = disk_mang.get_size() / (config::max_name_len + config::max_password_len);
     
 
@@ -75,11 +38,17 @@ bool Vault::open_vault(crypto::SafeVar &&master_passowrd) {
     // read disk
     crypto::SafeVar data = disk_mang.read_vault_data();
 
-    { // use sudo
-        auto sudo = acquire_sudo(std::move(master_passowrd));
-        if (!sudo) return false;
-        sudo.decrypt(data);
-    } // sudo destroyed here
+    master_passowrd.hash(salt);
+    crypto::SafeVar master_key = master_key_enc;
+    try {
+        master_key.decrypto(master_passowrd.get(), true);
+    }
+    catch (const crypto::Error& e) {
+        if (e.code() == crypto::IncorrectPassword) return false;
+        throw;
+    }
+
+    data.decrypto(master_key.get(), false);
     temp->dictionary.load(std::move(data));
 
     // no exceptions, commit to temp
@@ -102,157 +71,142 @@ void Vault::init_vault(crypto::SafeVar &&master_passowrd) {
     master_key_enc.encrypto(password_hash.get());
     password_hash.memzero();
 
-    session = std::make_unique<Session>(0); // exacly like open for empty vault but bypass the read/write chicken and egg issue
+    session = std::make_unique<Session>(0); // inlined open_vault for the case of empty vault that bypass the read/write chicken and egg issue
     data = session->dictionary.pack();
 
-    {
-        auto sudo = acquire_sudo(std::move(master_passowrd));
-        sudo.encrypt(data);
-    }
+    flush(std::move(master_passowrd));
     
     disk_mang.atomic_write_file(master_key_enc, salt, data); 
 }
 
-bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd) {
-    crypto::SafeVar data;
-    Dict::iterator name_it = session->dictionary.end();
 
-    try {
-        { // use sudo
-            auto sudo = acquire_sudo(std::move(master_passowrd));
-            if (!sudo) return false;
+bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_password) {
+    if (session->dictionary.contains(name)) return true;
+    
+    password.encrypto(session->session_key.get());
+    auto name_it = session->dictionary.emplace(std::move(name), std::move(password)).first; // the change to revert in case of exception
 
-            // add the password to dictionary
-            password.encrypto(session->session_key.get());
-            name_it = session->dictionary.emplace(std::move(name), std::move(password)).first; // the change to revert in case of exception
-
-            data = session->dictionary.pack();
-            sudo.encrypt(data);
-        } // sudo destroyed here
-
-        disk_mang.atomic_write_file(master_key_enc, salt, data); 
-    }
-    catch (...) {
-        if (name_it != session->dictionary.end()) session->dictionary.erase(name_it);
-        throw;
+    if (master_password.get() != nullptr) {
+        try {
+            if (!flush(std::move(master_password))) {
+                session->dictionary.erase(name_it);
+                return false;
+            }
+        }
+        catch (...) {
+            session->dictionary.erase(name_it);
+            throw;
+        }
     }
 
     return true;
 }
 
 
-bool Vault::del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowrd) {
-    Dict::node node;
-    crypto::SafeVar data;
-    
-    try {
-        { //use sudo
-            auto sudo = acquire_sudo(std::move(master_passowrd));
-            if (!sudo) return false;
+bool Vault::del_password(crypto::SafeVar &name, crypto::SafeVar &&master_password) {
+    if (!session->dictionary.contains(name)) return true;
 
-            node = session->dictionary.extract(name); // the change to revert in case of exception
+    auto node = session->dictionary.extract(name); // the change to revert in case of exception
 
-            data = session->dictionary.pack();
-            sudo.encrypt(data);
-        } // sudo destroyed here
-
-        disk_mang.atomic_write_file(master_key_enc, salt, data);
-    }
-    catch (...) {
-        if (!node.empty()) session->dictionary.insert(std::move(node)); // noexcept?
-        throw;
+    if (master_password.get() != nullptr) {
+        try {
+            if (!flush(std::move(master_password))) {
+                session->dictionary.insert(std::move(node));
+                return false;
+            }
+        }
+        catch (...) {
+            session->dictionary.insert(std::move(node)); // noexcept?
+            throw;
+        }
     }
      
     return true;
 }
 
-bool Vault::change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd) {
-    Dict::iterator target;
-    crypto::SafeVar data;
-    crypto::SafeVar old_password;
-    bool changed = false;
+bool Vault::change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_password) {
+    auto target = session->dictionary.find(name);
+    if (target == session->dictionary.end()) throw Error("Attempt to change non exiting name password", StateError);
+
+    password.encrypto(session->session_key.get());
+    crypto::SafeVar old_password = std::move(target->second);
+    target->second = std::move(password); // the change to revert in case of exception
     
-    try {
-        { // use sudo
-            auto sudo = acquire_sudo(std::move(master_passowrd));
-            if (!sudo) return false;
-
-            target = session->dictionary.find(name);
-            old_password = target->second;
-            password.encrypto(session->session_key.get());
-            target->second = std::move(password); // the change to revert in case of exception
-            changed = true;
-
-            data = session->dictionary.pack();
-            sudo.encrypt(data);
-        } // sudo destroyed here
-
-        disk_mang.atomic_write_file(master_key_enc, salt, data);
-    }
-    catch (...) {
-        if (changed) target->second = std::move(old_password);
-        throw;
+    if (master_password.get() != nullptr) {
+        try {
+            if (!flush(std::move(master_password))) {
+                target->second = std::move(old_password);
+                return false;
+            }
+        }
+        catch (...) {
+            target->second = std::move(old_password);
+            throw;
+        }
     }
      
     return true;
 }
 
-bool Vault::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypto::SafeVar &&master_passowrd) {
-    Dict::node node;
-    Dict::iterator inserted_node;
-    crypto::SafeVar old_name;
-    crypto::SafeVar data;
-    bool revert = false;
+bool Vault::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypto::SafeVar &&master_password) {
+    if (session->dictionary.contains(new_name)) throw Error("Attempt to change name to already existing name", StateError);
 
-    try {
-        { // use sudo
-            auto sudo = acquire_sudo(std::move(master_passowrd));
-            if (!sudo) return false;
+    auto target = session->dictionary.find(name);
+    if (target == session->dictionary.end()) throw Error("Attempt to change non exiting name", StateError);
 
-            node = session->dictionary.extract(name); // the change to revert in case of exception
-            revert = true;
+    auto node = session->dictionary.extract(target);
+    crypto::SafeVar old_name = std::move(node.key());
+    node.key() = std::move(new_name); 
+    auto inserted_node = session->dictionary.insert(std::move(node)).position;
 
-            old_name = std::move(node.key());
-            node.key() = std::move(new_name);
-
-            inserted_node = session->dictionary.insert(std::move(node)).position;
-
-            data = session->dictionary.pack();
-            sudo.encrypt(data);
-        } // sudo destroyed here
-
-        disk_mang.atomic_write_file(master_key_enc, salt, data);
-    }
-    catch (...) {
-        if (revert) {
+    if (master_password.get() != nullptr) {
+        try {
+            if (!flush(std::move(master_password))) {
+                node = session->dictionary.extract(inserted_node);
+                node.key() = std::move(old_name);
+                session->dictionary.insert(std::move(node)); // noexcept?
+                return false;
+            }
+        }
+        catch (...) {
             node = session->dictionary.extract(inserted_node);
             node.key() = std::move(old_name);
             session->dictionary.insert(std::move(node)); // noexcept?
+            throw;
         }
-        throw;
     }
     
     return true;
 }
 
+
 bool Vault::change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_password) {
-    crypto::SafeVar old_master_key_enc = master_key_enc;
-    crypto::SafeVar data = session->dictionary.pack();
-    bool changed = false;
+    crypto::SafeVar master_key = master_key_enc;
+    crypto::SafeVar password_hash = std::move(master_password);
+    password_hash.hash(salt);
+    try {
+        master_key.decrypto(password_hash.get(), true);
+    }
+    catch (const crypto::Error& e) {
+        if (e.code() == crypto::IncorrectPassword) return false;
+        throw;
+    }
+    
+
+    crypto::SafeVar new_hash = new_master;
+    new_hash.hash(salt);
+    master_key.encrypto(new_hash.get());
+    crypto::SafeVar old_master_key_enc = std::move(master_key_enc); // the point of revert
+    master_key_enc = std::move(master_key); // no except
 
     try {
-        { // use sudo
-            auto sudo = acquire_sudo(std::move(master_password));
-            if (!sudo) return false;
-
-            sudo.change_master(std::move(new_master), data); // the change to revert in case of exception
-            changed = true;
-        } // sudo destroyed here
-
-        disk_mang.atomic_write_file(master_key_enc, salt, data);
+        if (!flush(std::move(new_master))) {
+            master_key_enc = std::move(old_master_key_enc);
+            return false;
+        }
     }
     catch (...) {
-        if (changed) master_key_enc = std::move(old_master_key_enc);
+        master_key_enc = std::move(old_master_key_enc);
         throw;
     }
 

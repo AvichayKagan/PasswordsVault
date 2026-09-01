@@ -5,13 +5,13 @@
 
 
 crypto::SafeVar Dict::pack() const {
-    size_t write_len = config::vault_file_padding_factor * (1 + (size() / config::vault_file_padding_factor)) * (config::max_name_len + config::max_password_len);
+    size_t write_len = config::vault_file_padding_factor * (1 + (map.size() / config::vault_file_padding_factor)) * (config::max_name_len + config::max_password_len);
     crypto::SafeVar vault_data(write_len);
     crypto::SafeVar password;
     size_t j = 0;
     
     // load the buffer
-    for (auto& i : *this) {
+    for (auto& i : map) {
         // get the password
         password = i.second;
         password.decrypto(session_key.get(), false);
@@ -48,9 +48,60 @@ void Dict::load(crypto::SafeVar data){
 
         // set the password
         std::memcpy(password.get(), data.get() + i, config::max_password_len);
-        password.encrypto(session_key.get());
         i += config::max_password_len;
 
         emplace(std::move(name), std::move(password));
     }
+}
+
+std::pair<Dict::Map::iterator, bool> Dict::emplace(crypto::SafeVar &&name, crypto::SafeVar &&password) {
+    password.encrypto(session_key.get());
+    return map.emplace(std::move(name), std::move(password));
+}
+
+std::pair<Dict::Map::iterator, bool> Dict::insert_or_assign(crypto::SafeVar &name, crypto::SafeVar &&password) {
+    password.encrypto(session_key.get());
+    return map.insert_or_assign(name, std::move(password));
+}
+
+crypto::SafeVar Dict::change_password(crypto::SafeVar &name, crypto::SafeVar &&password) {
+    auto target = map.find(name);
+    if (target == map.end()) throw std::runtime_error("Attempt to change non exiting name password"); // change it
+
+    password.encrypto(session_key.get());
+    crypto::SafeVar old_password(crypto::key_len);
+    target->second.decrypto(session_key.get(), true);
+    old_password = std::move(target->second);
+    target->second = std::move(password);
+
+    return old_password;
+}
+
+void Dict::restore_password(crypto::SafeVar &name, crypto::SafeVar &&password) {
+    auto target = map.find(name);
+    if (target == map.end()) return;
+
+    password.encrypto(session_key.get());
+    target->second = std::move(password);
+}
+
+Dict::Map::iterator Dict::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name) {
+    if (map.contains(new_name)) throw std::runtime_error("Attempt to change name to already existing name"); // change it
+
+    auto target = map.find(name);
+    if (target == map.end()) throw std::runtime_error("Attempt to change non exiting name"); // change it
+
+    auto node = map.extract(target); // from here cannot except
+    node.key() = std::move(new_name);
+    return map.insert(std::move(node)).position;
+}
+
+crypto::SafeVar Dict::get_password(crypto::SafeVar &name) { 
+    crypto::SafeVar ret;
+    auto it = map.find(name);
+    if (it != map.end()) {
+        ret = it->second;
+        ret.decrypto(session_key.get(), false);
+    }
+    return ret;
 }

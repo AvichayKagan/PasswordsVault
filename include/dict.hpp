@@ -28,29 +28,40 @@ struct SafeVarEq {
     }
 };
 
-class Dict final : private std::unordered_map<crypto::SafeVar, crypto::SafeVar, SafeVarHash, SafeVarEq> {
+class Dict {
     private:
-        crypto::SafeVar &session_key;
-        using Base = std::unordered_map<crypto::SafeVar, crypto::SafeVar, SafeVarHash, SafeVarEq>;
+        using Map = std::unordered_map<crypto::SafeVar, crypto::SafeVar, SafeVarHash, SafeVarEq>;
+
+        crypto::SafeVar session_key;
+        Map map;
 
     public:
-        using Base::iterator;
-        using node = Base::node_type;
-        // expose to public (we do not inherit public since std::unordered_map has no virtual destructor)
-        using Base::contains;
-        using Base::find;
-        using Base::insert;
-        using Base::erase;
-        using Base::end;
-        using Base::begin;
-        using Base::empty;
-        using Base::size;
-        using Base::emplace;
-        using Base::extract;
+        Dict(crypto::SafeVar data) : session_key(crypto::key_len, true), map(1.5 * data.get_size()/config::slot_len, SafeVarHash(session_key)) { load(std::move(data)); }
 
-        Dict() = default;
+        bool contains(const crypto::SafeVar &name) const { return map.contains(name); }
 
-        Dict(crypto::SafeVar &_session_key, size_t vault_count) : Base(1.5 * vault_count, SafeVarHash(_session_key)), session_key(_session_key) {}
+        auto erase(Map::iterator it) { return map.erase(it); }
+
+        auto extract(crypto::SafeVar& node) { return map.extract(node); }
+
+        auto insert(Map::node_type &&node) { return map.insert(std::move(node)); }
+
+        auto begin() { return map.begin(); }
+        auto end() { return map.end(); }
+        auto size() { return map.size(); }
+        auto empty() { return map.empty(); }
+
+        std::pair<Dict::Map::iterator, bool> emplace(crypto::SafeVar &&name, crypto::SafeVar &&password);
+
+        std::pair<Dict::Map::iterator, bool> insert_or_assign(crypto::SafeVar &name, crypto::SafeVar &&password);
+
+        crypto::SafeVar change_password(crypto::SafeVar &name, crypto::SafeVar &&password);
+
+        void restore_password(crypto::SafeVar &name, crypto::SafeVar &&password);
+
+        Dict::Map::iterator change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name);
+
+        crypto::SafeVar get_password(crypto::SafeVar &name);
 
         crypto::SafeVar pack() const;
 

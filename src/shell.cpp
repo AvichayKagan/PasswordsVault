@@ -211,7 +211,7 @@ void Shell::rename() {
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
-        if (vault->change_name(arg, std::move(new_name), std::move(master_password))) {
+        if (vault->change_name(std::move(arg), new_name, std::move(master_password))) {
             std::cout << "Name has been change successfully." << std::endl;
             break;
         }

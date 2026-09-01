@@ -30,23 +30,10 @@ enum ErrorCode {
 
 class Vault {
     private:
-        class Session {
-        public:
-            crypto::SafeVar session_key;
-            Dict dictionary;
-
-            explicit Session(size_t vault_count) : session_key(crypto::key_len, true), dictionary(session_key, vault_count) {}
-            ~Session() = default;
-            Session(const Session&) = delete;
-            Session& operator=(const Session&) = delete;
-            Session(Session&&) = delete;
-            Session& operator=(Session&&) = delete; 
-        };
-
         crypto::Salt salt;
         crypto::SafeVar master_key_enc;
         disk::DiskManager disk_mang;
-        std::unique_ptr<Session> session; // add some sort of check that this is not null for all operations to prevent segfault
+        std::unique_ptr<Dict> dictionary; // add some sort of check that this is not null for all operations to prevent segfault
         
 
     public:
@@ -67,15 +54,15 @@ class Vault {
 
         bool open_vault(crypto::SafeVar master_passowrd);
 
-        void close_vault() { session.reset(); };
+        void close_vault() { dictionary.reset(); };
 
         long long get_size() { return disk_mang.get_size(); }
 
-        bool is_open() const { return session != nullptr; }
+        bool is_open() const { return dictionary.get() != nullptr; }
 
 
-        auto begin() const { return session->dictionary.begin(); }
-        auto end() const { return session->dictionary.end(); }
+        auto begin() const { return dictionary->begin(); }
+        auto end() const { return dictionary->end(); }
 
         bool add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
 
@@ -83,17 +70,17 @@ class Vault {
 
         bool change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
 
-        bool change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
+        bool change_name(crypto::SafeVar &&name, crypto::SafeVar &new_name, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
 
         bool change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_passowrd);
 
-        bool contains(crypto::SafeVar &name) { return session->dictionary.contains(name); }
+        bool contains(crypto::SafeVar &name) { return dictionary->contains(name); }
 
-        crypto::SafeVar search(crypto::SafeVar &name);
+        crypto::SafeVar search(crypto::SafeVar &name) { return dictionary->get_password(name); }
+ 
+        unsigned int get_count() { return dictionary->size(); }
 
-        unsigned int get_count() { return session->dictionary.size(); }
-
-        bool is_empty() { return session->dictionary.empty(); }
+        bool is_empty() { return dictionary->empty(); }
 };
 
 }

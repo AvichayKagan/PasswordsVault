@@ -23,7 +23,9 @@ enum ErrorCode {
 
     PremissionError = 10,
 
-    InitError = 20
+    InitError = 20,
+
+    StateError = 30
 };
 
 class Vault {
@@ -45,10 +47,8 @@ class Vault {
         crypto::SafeVar master_key_enc;
         disk::DiskManager disk_mang;
         std::unique_ptr<Session> session; // add some sort of check that this is not null for all operations to prevent segfault
+        
 
-        class Sudo;
-        Sudo acquire_sudo(crypto::SafeVar &&master_password);
-    
     public:
 
         Vault(crypto::SafeVar &&master_password = crypto::SafeVar()) :master_key_enc(crypto::key_len) {
@@ -61,9 +61,11 @@ class Vault {
             else throw Error("Vault file does not exist", InitError);
         }
 
+        bool flush(crypto::SafeVar master_password);
+
         void init_vault(crypto::SafeVar &&master_password);
 
-        bool open_vault(crypto::SafeVar &&master_passowrd);
+        bool open_vault(crypto::SafeVar master_passowrd);
 
         void close_vault() { session.reset(); };
 
@@ -75,13 +77,13 @@ class Vault {
         auto begin() const { return session->dictionary.begin(); }
         auto end() const { return session->dictionary.end(); }
 
-        bool add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd);
+        bool add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
 
-        bool del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowrd);
+        bool del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
 
-        bool change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd);
+        bool change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
 
-        bool change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypto::SafeVar &&master_passowrd);
+        bool change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
 
         bool change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_passowrd);
 

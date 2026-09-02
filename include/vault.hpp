@@ -48,6 +48,8 @@ class Vault {
         DictPtr dictionary; // add some sort of check that this is not null for all operations to prevent segfault
         
         void init_vault(crypto::SafeVar &&master_password);
+        void flush(crypto::SafeVar master_key);
+        crypto::SafeVar get_master_key(crypto::SafeVar &&master_password);
     public:
 
         Vault(crypto::SafeVar &&master_password = crypto::SafeVar()) :master_key_enc(crypto::key_len) {
@@ -60,9 +62,7 @@ class Vault {
             else throw Error("Vault file does not exist", InitError);
         }
 
-        void flush(crypto::SafeVar master_password);
-
-        bool open_vault(crypto::SafeVar &&master_passowrd);
+        bool open_vault(crypto::SafeVar &&master_password);
 
         void close_vault() { dictionary.reset(); };
 
@@ -74,15 +74,15 @@ class Vault {
         auto begin() const { return dictionary->begin(); }
         auto end() const { return dictionary->end(); }
 
-        bool add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
+        bool add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_password);
 
-        bool del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
+        bool del_password(crypto::SafeVar &name, crypto::SafeVar &&master_password);
 
-        bool change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
+        bool change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_password);
 
-        bool change_name(crypto::SafeVar &&name, crypto::SafeVar &new_name, crypto::SafeVar &&master_passowrd = crypto::SafeVar());
+        bool change_name(crypto::SafeVar &&name, crypto::SafeVar &new_name, crypto::SafeVar &&master_password);
 
-        bool change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_passowrd);
+        bool change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_password);
 
         bool contains(crypto::SafeVar &name) { return dictionary->contains(name); }
 
@@ -91,8 +91,6 @@ class Vault {
         unsigned int get_count() { return dictionary->size(); }
 
         bool is_empty() { return dictionary->empty(); }
-
-        crypto::SafeVar get_master_key(crypto::SafeVar &&master_password);
 };
 
 }

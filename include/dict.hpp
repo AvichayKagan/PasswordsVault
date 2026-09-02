@@ -40,6 +40,9 @@ class Dict {
 
         // add decrypt and encrypt methods
 
+        using node = Map::node_type;
+        using iterator = Map::iterator;
+
         bool contains(const crypto::SafeVar &name) const { return map.contains(name); }
 
         auto erase(Map::iterator it) { return map.erase(it); }
@@ -53,11 +56,11 @@ class Dict {
         auto size() { return map.size(); }
         auto empty() { return map.empty(); }
 
-        Dict::Map::iterator emplace(crypto::SafeVar &&name, crypto::SafeVar &&password);
+        Dict::iterator emplace(crypto::SafeVar &&name, crypto::SafeVar &&password);
 
         crypto::SafeVar change_password(crypto::SafeVar &name, crypto::SafeVar &&password);
 
-        Dict::Map::iterator change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name);
+        Dict::iterator change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name);
 
         crypto::SafeVar get_password(crypto::SafeVar &name);
 

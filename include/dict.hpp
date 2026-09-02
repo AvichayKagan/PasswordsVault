@@ -53,7 +53,7 @@ class Dict {
         auto size() { return map.size(); }
         auto empty() { return map.empty(); }
 
-        std::pair<Dict::Map::iterator, bool> emplace(crypto::SafeVar &&name, crypto::SafeVar &&password);
+        Dict::Map::iterator emplace(crypto::SafeVar &&name, crypto::SafeVar &&password);
 
         crypto::SafeVar change_password(crypto::SafeVar &name, crypto::SafeVar &&password);
 

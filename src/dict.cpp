@@ -54,9 +54,9 @@ void Dict::load(crypto::SafeVar data){
     }
 }
 
-std::pair<Dict::Map::iterator, bool> Dict::emplace(crypto::SafeVar &&name, crypto::SafeVar &&password) {
+Dict::Map::iterator Dict::emplace(crypto::SafeVar &&name, crypto::SafeVar &&password) {
     password.encrypto(session_key.get());
-    return map.emplace(std::move(name), std::move(password));
+    return map.emplace(std::move(name), std::move(password)).first;
 }
 
 crypto::SafeVar Dict::change_password(crypto::SafeVar &name, crypto::SafeVar &&password) {

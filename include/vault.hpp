@@ -23,9 +23,7 @@ enum ErrorCode {
 
     PremissionError = 10,
 
-    InitError = 20,
-
-    StateError = 30
+    InitError = 20
 };
 
 class Vault {
@@ -35,7 +33,7 @@ class Vault {
         disk::DiskManager disk_mang;
         std::unique_ptr<Dict> dictionary; // add some sort of check that this is not null for all operations to prevent segfault
         
-
+        void init_vault(crypto::SafeVar &&master_password);
     public:
 
         Vault(crypto::SafeVar &&master_password = crypto::SafeVar()) :master_key_enc(crypto::key_len) {
@@ -48,11 +46,9 @@ class Vault {
             else throw Error("Vault file does not exist", InitError);
         }
 
-        bool flush(crypto::SafeVar master_password);
+        void flush(crypto::SafeVar master_password);
 
-        void init_vault(crypto::SafeVar &&master_password);
-
-        bool open_vault(crypto::SafeVar master_passowrd);
+        bool open_vault(crypto::SafeVar &&master_passowrd);
 
         void close_vault() { dictionary.reset(); };
 
@@ -81,6 +77,8 @@ class Vault {
         unsigned int get_count() { return dictionary->size(); }
 
         bool is_empty() { return dictionary->empty(); }
+
+        crypto::SafeVar get_master_key(crypto::SafeVar &&master_password);
 };
 
 }

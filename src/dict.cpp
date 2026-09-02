@@ -69,21 +69,14 @@ crypto::SafeVar Dict::change_password(crypto::SafeVar &name, crypto::SafeVar &&p
     if (target == map.end()) throw std::runtime_error("Attempt to change non exiting name password"); // change it
 
     password.encrypto(session_key.get());
-    crypto::SafeVar old_password(crypto::key_len);
-    target->second.decrypto(session_key.get(), true);
-    old_password = std::move(target->second);
-    target->second = std::move(password);
+    target->second.decrypto(session_key.get(), false); // point of revert
+
+    crypto::SafeVar old_password = std::move(target->second); // no except
+    target->second = std::move(password); // no except
 
     return old_password;
 }
 
-void Dict::restore_password(crypto::SafeVar &name, crypto::SafeVar &&password) {
-    auto target = map.find(name);
-    if (target == map.end()) return;
-
-    password.encrypto(session_key.get());
-    target->second = std::move(password);
-}
 
 Dict::Map::iterator Dict::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name) {
     if (map.contains(new_name)) throw std::runtime_error("Attempt to change name to already existing name"); // change it

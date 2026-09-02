@@ -32,6 +32,4 @@ add timeouts (threads)
 
 chagne the decrypto and encrypto back to normal and cahggne their argument to get a safevar
 
-make the dictionary own the session key
-
 review passing by value & and && and secrets lifetime

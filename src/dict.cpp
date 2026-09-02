@@ -59,11 +59,6 @@ std::pair<Dict::Map::iterator, bool> Dict::emplace(crypto::SafeVar &&name, crypt
     return map.emplace(std::move(name), std::move(password));
 }
 
-std::pair<Dict::Map::iterator, bool> Dict::insert_or_assign(crypto::SafeVar &name, crypto::SafeVar &&password) {
-    password.encrypto(session_key.get());
-    return map.insert_or_assign(name, std::move(password));
-}
-
 crypto::SafeVar Dict::change_password(crypto::SafeVar &name, crypto::SafeVar &&password) {
     auto target = map.find(name);
     if (target == map.end()) throw std::runtime_error("Attempt to change non exiting name password"); // change it

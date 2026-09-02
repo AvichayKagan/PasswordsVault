@@ -55,8 +55,6 @@ class Dict {
 
         std::pair<Dict::Map::iterator, bool> emplace(crypto::SafeVar &&name, crypto::SafeVar &&password);
 
-        std::pair<Dict::Map::iterator, bool> insert_or_assign(crypto::SafeVar &name, crypto::SafeVar &&password);
-
         crypto::SafeVar change_password(crypto::SafeVar &name, crypto::SafeVar &&password);
 
         Dict::Map::iterator change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name);

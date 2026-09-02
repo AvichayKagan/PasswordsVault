@@ -46,40 +46,35 @@ bool Vault::open_vault(crypto::SafeVar &&master_password) {
 }
 
 
-void Vault::init_vault(crypto::SafeVar &&master_passowrd) {
+void Vault::init_vault(crypto::SafeVar &&master_password) {
     master_key_enc.random();
     crypto::random(salt, crypto::salt_len);
     
-    crypto::SafeVar password_hash = master_passowrd;
+    crypto::SafeVar password_hash = master_password;
     password_hash.hash(salt);
     
     master_key_enc.encrypto(password_hash.get());
 
     dictionary = DictPtr(crypto::SafeVar(0)); // inlined open_vault for the case of empty vault that bypass the read/write chicken and egg issue
 
-    flush(std::move(master_passowrd));
+    flush(std::move(master_password));
 }
 
 
 bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_password) {
-    crypto::SafeVar master_key;
-    if (master_password.get() != nullptr) {
-        master_key = get_master_key(std::move(master_password));
-        if (master_key.get() == nullptr) return false;
-    }
+    crypto::SafeVar master_key = get_master_key(std::move(master_password));
+    if (master_key.get() == nullptr) return false;
 
-    if (dictionary->contains(name)) return true;
+    if (dictionary->contains(name)) return true; // if name exists if does not cahnge the password!
     
     auto name_it = dictionary->emplace(std::move(name), std::move(password)); // the change to revert in case of exception
 
-    if (master_key.get() != nullptr) {
-        try {
-            flush(std::move(master_key));
-        }
-        catch (...) {
-            dictionary->erase(name_it);
-            throw;
-        }
+    try {
+        flush(std::move(master_key));
+    }
+    catch (...) {
+        dictionary->erase(name_it);
+        throw;
     }
 
     return true;
@@ -87,46 +82,36 @@ bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, cry
 
 
 bool Vault::del_password(crypto::SafeVar &name, crypto::SafeVar &&master_password) {
-    crypto::SafeVar master_key;
-    if (master_password.get() != nullptr) {
-        master_key = get_master_key(std::move(master_password));
-        if (master_key.get() == nullptr) return false;
-    }
+    crypto::SafeVar master_key = get_master_key(std::move(master_password));
+    if (master_key.get() == nullptr) return false;
 
     if (!dictionary->contains(name)) return true;
 
     auto node = dictionary->extract(name); // the change to revert in case of exception
 
-    if (master_key.get() != nullptr) {
-        try {
-            flush(std::move(master_key));
-        }
-        catch (...) {
-            dictionary->insert(std::move(node)); // noexcept?
-            throw;
-        }
+    try {
+        flush(std::move(master_key));
+    }
+    catch (...) {
+        dictionary->insert(std::move(node)); // noexcept?
+        throw;
     }
      
     return true;
 }
 
 bool Vault::change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_password) {
-    crypto::SafeVar master_key;
-    if (master_password.get() != nullptr) {
-        master_key = get_master_key(std::move(master_password));
-        if (master_key.get() == nullptr) return false;
-    }
+    crypto::SafeVar master_key = get_master_key(std::move(master_password));
+    if (master_key.get() == nullptr) return false;
 
     crypto::SafeVar old_password = dictionary->change_password(name, std::move(password));
 
-    if (master_key.get() != nullptr) {
-        try {
-            flush(std::move(master_key));
-        }
-        catch (...) {
-            dictionary->change_password(name, std::move(old_password));
-            throw;
-        }
+    try {
+        flush(std::move(master_key));
+    }
+    catch (...) {
+        dictionary->change_password(name, std::move(old_password));
+        throw;
     }
      
     return true;
@@ -134,22 +119,17 @@ bool Vault::change_password(crypto::SafeVar &name, crypto::SafeVar &&password, c
 
 
 bool Vault::change_name(crypto::SafeVar &&name, crypto::SafeVar &new_name, crypto::SafeVar &&master_password) {
-    crypto::SafeVar master_key;
-    if (master_password.get() != nullptr) {
-        master_key = get_master_key(std::move(master_password));
-        if (master_key.get() == nullptr) return false;
-    }
+    crypto::SafeVar master_key = get_master_key(std::move(master_password));
+    if (master_key.get() == nullptr) return false;
 
     dictionary->change_name(name, crypto::SafeVar(new_name));
 
-    if (master_key.get() != nullptr) {
-        try {
-            flush(std::move(master_key));
-        }
-        catch (...) {
-            dictionary->change_name(new_name, std::move(name));
-            throw;
-        }
+    try {
+        flush(std::move(master_key));
+    }
+    catch (...) {
+        dictionary->change_name(new_name, std::move(name));
+        throw;
     }
     
     return true;

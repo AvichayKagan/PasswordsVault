@@ -54,7 +54,7 @@ void Dict::load(crypto::SafeVar data){
     }
 }
 
-Dict::Map::iterator Dict::emplace(crypto::SafeVar &&name, crypto::SafeVar &&password) {
+Dict::iterator Dict::emplace(crypto::SafeVar &&name, crypto::SafeVar &&password) {
     password.encrypto(session_key.get());
     return map.emplace(std::move(name), std::move(password)).first;
 }
@@ -73,7 +73,7 @@ crypto::SafeVar Dict::change_password(crypto::SafeVar &name, crypto::SafeVar &&p
 }
 
 
-Dict::Map::iterator Dict::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name) {
+Dict::iterator Dict::change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name) {
     if (map.contains(new_name)) throw std::runtime_error("Attempt to change name to already existing name"); // change it
 
     auto target = map.find(name);

@@ -70,7 +70,7 @@ bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, cry
 
     if (dictionary->contains(name)) return true;
     
-    auto name_it = dictionary->emplace(std::move(name), std::move(password)).first; // the change to revert in case of exception
+    auto name_it = dictionary->emplace(std::move(name), std::move(password)); // the change to revert in case of exception
 
     if (master_key.get() != nullptr) {
         try {

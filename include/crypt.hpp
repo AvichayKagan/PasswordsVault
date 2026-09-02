@@ -55,7 +55,7 @@ namespace crypto {
             static constexpr int short_hash_pepper_len = crypto_shorthash_KEYBYTES;
             static constexpr int encryptoion_buff_len = nonce_len + auth_tag_len;
 
-
+            // add swap method
 
             SafeVar() = default;
 

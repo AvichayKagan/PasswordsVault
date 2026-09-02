@@ -40,7 +40,7 @@ bool Vault::open_vault(crypto::SafeVar &&master_password) {
     data.decrypto(master_key.get(), false);
     master_key.memzero();
 
-    dictionary = std::make_unique<Dict>(std::move(data));
+    dictionary = DictPtr(std::move(data));
 
     return true;
 }
@@ -55,7 +55,7 @@ void Vault::init_vault(crypto::SafeVar &&master_passowrd) {
     
     master_key_enc.encrypto(password_hash.get());
 
-    dictionary = std::make_unique<Dict>(crypto::SafeVar(0)); // inlined open_vault for the case of empty vault that bypass the read/write chicken and egg issue
+    dictionary = DictPtr(crypto::SafeVar(0)); // inlined open_vault for the case of empty vault that bypass the read/write chicken and egg issue
 
     flush(std::move(master_passowrd));
 }

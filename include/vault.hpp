@@ -28,10 +28,24 @@ enum ErrorCode {
 
 class Vault {
     private:
+        class DictPtr {
+            private:
+                std::unique_ptr<Dict> ptr;
+            public:
+                DictPtr() = default;
+                DictPtr(crypto::SafeVar &&data) : ptr(std::make_unique<Dict>(std::move(data))) {}
+                void reset() { ptr.reset(); }
+                explicit operator bool() const { return ptr.get(); }
+                Dict* operator->() const { 
+                    if (!ptr) throw Error("Attempt accessing a closed vault.", PremissionError); 
+                    return ptr.get(); 
+                }
+        };
+
         crypto::Salt salt;
         crypto::SafeVar master_key_enc;
         disk::DiskManager disk_mang;
-        std::unique_ptr<Dict> dictionary; // add some sort of check that this is not null for all operations to prevent segfault
+        DictPtr dictionary; // add some sort of check that this is not null for all operations to prevent segfault
         
         void init_vault(crypto::SafeVar &&master_password);
     public:
@@ -54,7 +68,7 @@ class Vault {
 
         long long get_size() { return disk_mang.get_size(); }
 
-        bool is_open() const { return dictionary.get() != nullptr; }
+        bool is_open() const { return (bool)dictionary; }
 
 
         auto begin() const { return dictionary->begin(); }

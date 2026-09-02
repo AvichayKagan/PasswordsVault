@@ -124,7 +124,7 @@ bool Vault::change_password(crypto::SafeVar &name, crypto::SafeVar &&password, c
             flush(std::move(master_key));
         }
         catch (...) {
-            dictionary->restore_password(name, std::move(old_password));
+            dictionary->change_password(name, std::move(old_password));
             throw;
         }
     }

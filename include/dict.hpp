@@ -38,6 +38,8 @@ class Dict {
     public:
         Dict(crypto::SafeVar data) : session_key(crypto::key_len, true), map(1.5 * data.get_size()/config::slot_len, SafeVarHash(session_key)) { load(std::move(data)); }
 
+        // add decrypt and encrypt methods
+
         bool contains(const crypto::SafeVar &name) const { return map.contains(name); }
 
         auto erase(Map::iterator it) { return map.erase(it); }
@@ -56,8 +58,6 @@ class Dict {
         std::pair<Dict::Map::iterator, bool> insert_or_assign(crypto::SafeVar &name, crypto::SafeVar &&password);
 
         crypto::SafeVar change_password(crypto::SafeVar &name, crypto::SafeVar &&password);
-
-        void restore_password(crypto::SafeVar &name, crypto::SafeVar &&password);
 
         Dict::Map::iterator change_name(crypto::SafeVar &name, crypto::SafeVar &&new_name);
 

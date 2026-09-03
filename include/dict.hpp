@@ -47,7 +47,7 @@ class Dict {
 
         auto erase(Map::iterator it) { return map.erase(it); }
 
-        auto extract(crypto::SafeVar& node) { return map.extract(node); }
+        auto extract(crypto::SafeVar& name) { return map.extract(name); }
 
         auto insert(Map::node_type &&node) { return map.insert(std::move(node)); }
 
@@ -56,7 +56,7 @@ class Dict {
         auto size() { return map.size(); }
         auto empty() { return map.empty(); }
 
-        Dict::iterator emplace(crypto::SafeVar &&name, crypto::SafeVar &&password);
+        std::pair<Dict::iterator, bool> emplace(crypto::SafeVar &&name, crypto::SafeVar &&password);
 
         crypto::SafeVar change_password(crypto::SafeVar &name, crypto::SafeVar &&password);
 

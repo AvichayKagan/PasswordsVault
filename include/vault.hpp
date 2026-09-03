@@ -84,6 +84,9 @@ class Vault {
 
         bool change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_password);
 
+        using import_type = std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>>;
+        bool import_passwords(import_type batch, crypto::SafeVar &&master_password);
+
         bool contains(crypto::SafeVar &name) { return dictionary->contains(name); }
 
         crypto::SafeVar search(crypto::SafeVar &name) { return dictionary->get_password(name); }

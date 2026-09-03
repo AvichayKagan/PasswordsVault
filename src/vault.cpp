@@ -67,7 +67,7 @@ bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, cry
 
     if (dictionary->contains(name)) return true; // if name exists if does not cahnge the password!
     
-    auto name_it = dictionary->emplace(std::move(name), std::move(password)); // the change to revert in case of exception
+    auto name_it = dictionary->emplace(std::move(name), std::move(password)).first; // the change to revert in case of exception
 
     try {
         flush(std::move(master_key));
@@ -160,6 +160,31 @@ bool Vault::change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master
     return true;
 }
 
+
+// this does not change exiting passwords
+bool Vault::import_passwords(import_type batch, crypto::SafeVar &&master_password) {
+    crypto::SafeVar master_key = get_master_key(std::move(master_password));
+    if (master_key.get() == nullptr) return false;
+    
+    for (int i = 0; batch[i].first.get() != nullptr; i++) {
+        auto inserted = dictionary->emplace(crypto::SafeVar(batch[i].first), crypto::SafeVar(batch[i].second)).second;
+        if (!inserted) {
+            batch[i].second = crypto::SafeVar();
+        }
+    }
+
+    try {
+        flush(std::move(master_key));
+    }
+    catch (...) {
+        for (int i = 0; batch[i].first.get() != nullptr; i++) {
+            if (batch[i].second.get() != nullptr) dictionary->extract(batch[i].first);
+        }
+        throw;
+    }
+
+    return true;
+}
 
 
 } // namespace vault

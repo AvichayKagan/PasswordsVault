@@ -50,26 +50,31 @@ void Dict::load(crypto::SafeVar data){
         std::memcpy(password.get(), data.get() + i, config::max_password_len);
         i += config::max_password_len;
 
-        emplace(std::move(name), std::move(password));
+        add(std::move(name), std::move(password));
     }
 }
 
-std::pair<Dict::iterator, bool> Dict::emplace(crypto::SafeVar &&name, crypto::SafeVar &&password) {
+
+/* 
+return pair:
+    1. iterator to the new enrtry or end() if the dictionary was not mutated
+    2. a safevar which is the old passwrod (empty safevar if the entry didnt exist)
+*/
+std::pair<Dict::iterator, crypto::SafeVar> Dict::add(crypto::SafeVar &&name, crypto::SafeVar &&password, bool overwrite) {
+    auto iter = map.find(name);
+    
+    if (iter != map.end()) {
+        if (!overwrite) return {map.end(), crypto::SafeVar()};
+        password.encrypto(session_key.get());
+        crypto::SafeVar old_pass = std::move(iter->second);
+        iter->second = std::move(password);
+        return {iter, std::move(old_pass)};
+    }
+
     password.encrypto(session_key.get());
-    return map.emplace(std::move(name), std::move(password));
-}
+    iter = map.emplace(std::move(name), std::move(password)).first;
 
-crypto::SafeVar Dict::change_password(crypto::SafeVar &name, crypto::SafeVar &&password) {
-    auto target = map.find(name);
-    if (target == map.end()) throw std::runtime_error("Attempt to change non exiting name password"); // change it
-
-    password.encrypto(session_key.get());
-    target->second.decrypto(session_key.get(), false); // point of revert
-
-    crypto::SafeVar old_password = std::move(target->second); // no except
-    target->second = std::move(password); // no except
-
-    return old_password;
+    return {iter, crypto::SafeVar()};
 }
 
 

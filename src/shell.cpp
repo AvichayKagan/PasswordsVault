@@ -178,7 +178,7 @@ void Shell::chpass() {
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
-        if (vault->change_password(arg, std::move(password), std::move(master_password))) {
+        if (vault->add_password(std::move(arg), std::move(password), std::move(master_password))) {
             std::cout << "Password has been change successfully." << std::endl;
             break;
         }

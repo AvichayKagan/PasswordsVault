@@ -78,14 +78,12 @@ class Vault {
 
         bool del_password(crypto::SafeVar &name, crypto::SafeVar &&master_password);
 
-        bool change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_password);
-
         bool change_name(crypto::SafeVar &&name, crypto::SafeVar &new_name, crypto::SafeVar &&master_password);
 
         bool change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_password);
 
         using import_type = std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>>;
-        bool import_passwords(import_type batch, crypto::SafeVar &&master_password);
+        bool import_passwords(import_type batch, crypto::SafeVar &&master_password, bool overwrite);
 
         bool contains(crypto::SafeVar &name) { return dictionary->contains(name); }
 

@@ -8,6 +8,12 @@ commands to add:
     add --gen --len --copy
     --info flag for each command with security ranks
 
+show single passwrod without opening teh entire vault
+
+fix the io to eccho commands? to not deltet the local output but deletre the global. replace secret with safevar
+
+refactor safevar
+
 improve the parser and fix the safevar size issue
 
 make the vault module itself safe and check for its arguments ("password does not exists in vault")

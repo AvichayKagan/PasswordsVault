@@ -60,20 +60,21 @@ void Vault::init_vault(crypto::SafeVar &&master_password) {
     flush(std::move(master_password));
 }
 
-
+// overwrite an existing password
 bool Vault::add_password(crypto::SafeVar &&name, crypto::SafeVar &&password, crypto::SafeVar &&master_password) {
     crypto::SafeVar master_key = get_master_key(std::move(master_password));
     if (master_key.get() == nullptr) return false;
-
-    if (dictionary->contains(name)) return true; // if name exists if does not cahnge the password!
     
-    auto name_it = dictionary->emplace(std::move(name), std::move(password)).first; // the change to revert in case of exception
+    auto target = dictionary->add(std::move(name), std::move(password)); // the change to revert in case of exception
 
     try {
         flush(std::move(master_key));
     }
     catch (...) {
-        dictionary->erase(name_it);
+        if (target.second.get() == nullptr) {
+            dictionary->erase(target.first);
+        }
+        else target.first->second = std::move(target.second);
         throw;
     }
 
@@ -94,23 +95,6 @@ bool Vault::del_password(crypto::SafeVar &name, crypto::SafeVar &&master_passwor
     }
     catch (...) {
         dictionary->insert(std::move(node)); // noexcept?
-        throw;
-    }
-     
-    return true;
-}
-
-bool Vault::change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_password) {
-    crypto::SafeVar master_key = get_master_key(std::move(master_password));
-    if (master_key.get() == nullptr) return false;
-
-    crypto::SafeVar old_password = dictionary->change_password(name, std::move(password));
-
-    try {
-        flush(std::move(master_key));
-    }
-    catch (...) {
-        dictionary->change_password(name, std::move(old_password));
         throw;
     }
      
@@ -161,15 +145,17 @@ bool Vault::change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master
 }
 
 
-// this does not change exiting passwords
-bool Vault::import_passwords(import_type batch, crypto::SafeVar &&master_password) {
+bool Vault::import_passwords(import_type batch, crypto::SafeVar &&master_password, bool overwrite) {
     crypto::SafeVar master_key = get_master_key(std::move(master_password));
     if (master_key.get() == nullptr) return false;
     
+    std::vector<std::pair<Dict::iterator, crypto::SafeVar>> recover; // add init size
+
     for (int i = 0; batch[i].first.get() != nullptr; i++) {
-        auto inserted = dictionary->emplace(crypto::SafeVar(batch[i].first), crypto::SafeVar(batch[i].second)).second;
-        if (!inserted) {
-            batch[i].second = crypto::SafeVar();
+        auto pair = dictionary->add(std::move(batch[i].first), std::move(batch[i].second), overwrite);
+
+        if (pair.first != dictionary->end()) {
+            recover.push_back(std::move(pair));
         }
     }
 
@@ -177,8 +163,11 @@ bool Vault::import_passwords(import_type batch, crypto::SafeVar &&master_passwor
         flush(std::move(master_key));
     }
     catch (...) {
-        for (int i = 0; batch[i].first.get() != nullptr; i++) {
-            if (batch[i].second.get() != nullptr) dictionary->extract(batch[i].first);
+        for (auto &pair : recover) {
+            if (pair.second.get() == nullptr) {
+                dictionary->erase(pair.first);
+            }
+            else pair.first->second = std::move(pair.second);
         }
         throw;
     }

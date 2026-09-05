@@ -50,13 +50,14 @@ namespace {
 
 class Tokens {
     private:
-        std::vector<char*> offsets;
-        crypto::SafeVar instruction;
+        std::vector<crypto::SafeVar> tokens;
 
 
         void slice(unsigned char *start, unsigned char *end) {
-            *end = '\0';
-            offsets.push_back((char*)start);
+            crypto::SafeVar token(end - start + 1);
+            std::memcpy(token.get(), start, end - start);
+            token.get()[end - start + 1] = '\0';
+            tokens.push_back(std::move(token));
         }
 
         unsigned char *skip_space(unsigned char *start) {
@@ -66,7 +67,7 @@ class Tokens {
 
         unsigned char *skip_word(unsigned char *start) {
             while(*start != '\0' && !std::isspace(*start)) start++;
-            return start;
+            return --start;
         }
 
         unsigned char *get_first_flag(unsigned char *start) {
@@ -75,7 +76,7 @@ class Tokens {
         }
         
     public:
-        Tokens(crypto::SafeVar &&_instruction) : instruction(std::move(_instruction)) {
+        Tokens(crypto::SafeVar instruction) {
             enum {IN, OUT};
             int state = OUT;
 
@@ -87,62 +88,23 @@ class Tokens {
             end = get_first_flag(start);
             if (*end != '\0' && end != start){
                 while (std::isspace(*(--end)));
-                slice(start, ++end);
+                slice(start, end);
             }
 
-            for (unsigned char *i = ++end; *i != '\0'; i++) {
-                bool space = std::isspace(*i);
 
-                switch (state) {
-                    case OUT:
-                        if (!space) {
-                            offsets.push_back((char*)i);
-                            state = IN;
-                        }
-                        break;
-                    
-                    case IN:
-                        if (space) {
-                            *i = '\0';
-                            state = OUT;
-                        }
-                        break;
-                }
+            while (start != '\0') {
+                start = skip_space(++end);
+                end = skip_word(start);
+                slice(start, end);
             }
         }
 
-        using iterator = std::vector<char*>::iterator;
+        using iterator = std::vector<crypto::SafeVar>::iterator;
 
-        char *extract(iterator it) { 
-            char *target = *it;
-            offsets.erase(it);
-            return target;
-        }
-
-        iterator begin() { return offsets.begin(); }
-        iterator end() { return offsets.end(); }
+        iterator begin() { return tokens.begin(); }
+        iterator end() { return tokens.end(); }
 
 };
-
-crypto::SafeVar get_name(Tokens &tokens) {
-    crypto::SafeVar name(config::max_name_len);
-    size_t index = 0;
-
-    for (char *token : tokens) {
-        if (token[0] != '-') {
-            size_t len = std::strlen(token);
-            std::memcpy((char*)name.get() + index, token, len);
-            index += len;
-            name.get()[index] = ' ';
-            index++;
-        }
-        else break;
-    }
-    name.get()[index - 1] = '\0';
-
-
-    return name;
-}
 
 
 size_t get_code(const char *name) {
@@ -168,15 +130,17 @@ ShellEncoding parse(crypto::SafeVar &&instruction) {
     ShellEncoding encoding;
 
     Tokens::iterator it = tokens.begin();
-
-    encoding.command = get_code(*(it++)); // get the code
+    
+    encoding.command = get_code((char*)it->get()); // get the code
+    it++;
 
     // get the arg
     encoding.arg = crypto::SafeVar(config::max_name_len);
-    std::strcpy((char*)encoding.arg.get(), *(it++));
+    std::strcpy((char*)encoding.arg.get(), (char*)it->get());
+    it++;
 
     for (; it != tokens.end(); it++) {
-        encoding.flags |= get_flag_code(commands[encoding.command].Flags, *it);
+        encoding.flags |= get_flag_code(commands[encoding.command].Flags, (char*)it->get());
 
         
     }

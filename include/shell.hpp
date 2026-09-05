@@ -2,6 +2,7 @@
 #include "vault.hpp"
 #include "crypt.hpp"
 #include "safe_io.hpp"
+#include "parser.hpp"
 
 namespace shell {
 

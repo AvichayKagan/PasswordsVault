@@ -2,16 +2,6 @@
 
 namespace shell {
 
-int Shell::get_code() {
-    int code;
-
-    for (code = 0; commands[code].name != nullptr; code++) {
-        if (!std::strcmp(commands[code].name, (char *)command.get())) return code;
-    }
-
-    return -1; // code for none
-}
-
 void Shell::help() {
     std::cout << "Available commands:\n"
               << "-------------------\n"
@@ -94,15 +84,13 @@ void Shell::close() {
 
 void Shell::add() {
     crypto::SafeVar password(config::max_password_len);
-    crypto::SafeVar name = arg;
-    name.realloc(config::max_name_len);
 
-    if (vault->contains(name)) {
-        std::cout << "'" << name.get() << "' already exists in the vault. you can change its password using 'change' or delete it using 'del'." << std::endl;
+    if (vault->contains(encoding.arg)) {
+        std::cout << "'" << encoding.arg.get() << "' already exists in the vault. you can change its password using 'change' or delete it using 'del'." << std::endl;
         return;
     }
 
-    std::cout << "Please enter the password for " << name.get() << ": " << std::flush;
+    std::cout << "Please enter the password for " << encoding.arg.get() << ": " << std::flush;
     if (safeio::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     
 
@@ -112,7 +100,7 @@ void Shell::add() {
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
-        if (vault->add_password(std::move(name), std::move(password), std::move(master_password))) {
+        if (vault->add_password(std::move(encoding.arg), std::move(password), std::move(master_password))) {
             std::cout << "Password has been added to the vault." << std::endl;
             break;
         }
@@ -121,8 +109,8 @@ void Shell::add() {
 }
 
 void Shell::del() {
-    if (!vault->contains(arg)) {
-        std::cout << "Cannot delete '"<< arg.get() << "' as it doesn't exists in the vault." << std::endl;
+    if (!vault->contains(encoding.arg)) {
+        std::cout << "Cannot delete '"<< encoding.arg.get() << "' as it doesn't exists in the vault." << std::endl;
         return;
     }
 
@@ -133,8 +121,8 @@ void Shell::del() {
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
         
-        if (vault->del_password(arg, std::move(master_password))) {
-            std::cout << arg.get() << " has been deleted from the vault." << std::endl;
+        if (vault->del_password(encoding.arg, std::move(master_password))) {
+            std::cout << encoding.arg.get() << " has been deleted from the vault." << std::endl;
             break;
         }
         std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
@@ -142,15 +130,15 @@ void Shell::del() {
 }
 
 void Shell::show() {
-    crypto::SafeVar password = vault->search(arg);
+    crypto::SafeVar password = vault->search(encoding.arg);
 
     if (password.get() == nullptr) {
-        std::cout << "No such name '"<< arg.get() << "' exists in the vault. you can add it using 'add'." << std::endl;
+        std::cout << "No such name '"<< encoding.arg.get() << "' exists in the vault. you can add it using 'add'." << std::endl;
         return;
     }
 
     safeio::SafeStream cout("A password has been showed.");
-    cout << "The password for '" << safeio::Secret(arg.get()) << "' is: '" << safeio::Secret(password.get()) << "', Press any key to delete this massage, or 'c' to copy the password." << safeio::flush;
+    cout << "The password for '" << safeio::Secret(encoding.arg.get()) << "' is: '" << safeio::Secret(password.get()) << "', Press any key to delete this massage, or 'c' to copy the password." << safeio::flush;
     int ch = safeio::key_press();
     if (ch == 'c') {
 
@@ -163,12 +151,12 @@ void Shell::show() {
 void Shell::chpass() {
     crypto::SafeVar password(config::max_password_len);
 
-    if (!vault->contains(arg)) {
-        std::cout << "No entry '"<< arg.get() << "' exists in the vault." << std::endl;
+    if (!vault->contains(encoding.arg)) {
+        std::cout << "No entry '"<< encoding.arg.get() << "' exists in the vault." << std::endl;
         return;
     }
 
-    std::cout << "Please enter the new password for " << arg.get() << ": " << std::flush;
+    std::cout << "Please enter the new password for " << encoding.arg.get() << ": " << std::flush;
     if (safeio::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     
 
@@ -178,7 +166,7 @@ void Shell::chpass() {
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
-        if (vault->change_password(arg, std::move(password), std::move(master_password))) {
+        if (vault->change_password(encoding.arg, std::move(password), std::move(master_password))) {
             std::cout << "Password has been change successfully." << std::endl;
             break;
         }
@@ -190,12 +178,12 @@ void Shell::chpass() {
 void Shell::rename() {
     crypto::SafeVar new_name(config::max_name_len);
 
-    if (!vault->contains(arg)) {
-        std::cout << "No entry '"<< arg.get() << "' exists in the vault." << std::endl;
+    if (!vault->contains(encoding.arg)) {
+        std::cout << "No entry '"<< encoding.arg.get() << "' exists in the vault." << std::endl;
         return;
     }
 
-    std::cout << "Please enter the new name for " << arg.get() << ": " << std::flush;
+    std::cout << "Please enter the new name for " << encoding.arg.get() << ": " << std::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
         if (safeio::input(new_name.get(), config::max_name_len, false)) throw Error("Failed to take password from the user.");
@@ -211,7 +199,7 @@ void Shell::rename() {
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
-        if (vault->change_name(std::move(arg), new_name, std::move(master_password))) {
+        if (vault->change_name(std::move(encoding.arg), new_name, std::move(master_password))) {
             std::cout << "Name has been change successfully." << std::endl;
             break;
         }
@@ -241,8 +229,8 @@ void Shell::chmaster() {
 }
 
 void Shell::run() {
+    int max_input_len = 100; // temp
     crypto::SafeVar input(max_input_len);
-    int code;
 
     if (vault == nullptr) {
         crypto::SafeVar master_password(config::max_password_len);
@@ -262,16 +250,16 @@ void Shell::run() {
         std::cout << std::endl;
         if (safeio::input(input.get(), max_input_len, false)) throw Error("Failed to read command from the user.");
 
-        if (!this->parse(input.get(), &code)) continue;
+        encoding = parse(input);
 
-        if (!vault->is_open() && !commands[code].allow_close) {
+        if (!vault->is_open() && !commands[encoding.command].allow_close) {
             std::cout << "Cannot complete the operation, the vault is closed, please type 'open' to open it." << std::endl;
             continue;
         }
 
         try {
             std::cout << std::endl;
-            (this->*commands[code].method)(); // execute the command
+            (this->*commands[encoding.command].method)(); // execute the command
         } 
         catch (const config::FatalError& e) {
             throw;
@@ -282,51 +270,8 @@ void Shell::run() {
         catch (const std::exception& e) {
             std::cerr << "Error: Could not complete opertation: " << e.what() << '\n';
         }
-
-        reset();
     }
 }
 
-bool Shell::parse(unsigned char *input, int *code) {
-    char *cmd = (char *)command.get();
-    char *arg = (char *)this->arg.get();
-
-    while (std::isspace(*input)) input++;
-    if (*input == '\0') return false;
-
-    while (*input != '\0' && !std::isspace(*input)) {
-        *cmd = *input;
-        cmd++;
-        input++;
-    }
-    *cmd = '\0';
-    *code = this->get_code();
-
-    if (*code == -1) {
-        std::cout << "Unrecognized command '"<< command.get() << "', did you mean '' ? please type 'help' to list the avalible commands." << std::endl;
-        return false;
-    }
-
-    while (std::isspace(*input)) input++;
-     if (*input == '\0' && commands[*code].has_arg) {
-        std::cout << "Missing argument." << std::endl;
-        return false;
-    }
-
-    while (*input != '\0' && !std::isspace(*input)) {
-        *arg = *input;
-        arg++;
-        input++;
-    }
-    *arg = '\0';
-
-    while (std::isspace(*input)) input++;
-    if (*input != '\0') {
-        std::cout << "Too many arguments." << std::endl;
-        return false;
-    }
-
-    return true;
-}
 
 } // namespace shell

@@ -145,14 +145,19 @@ bool Vault::change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master
 }
 
 
-bool Vault::import_passwords(import_type batch, crypto::SafeVar &&master_password, bool overwrite) {
+std::pair<int, int> Vault::import_passwords(crypto::SafeVar &&path, crypto::SafeVar &&master_password, bool overwrite) {
     crypto::SafeVar master_key = get_master_key(std::move(master_password));
-    if (master_key.get() == nullptr) return false;
+    if (master_key.get() == nullptr) return {-1, -1};
     
+    int inserted = 0, changed = 0;
+    auto batch = disk::get_batch(std::move(path));
     std::vector<std::pair<Dict::iterator, crypto::SafeVar>> recover; // add init size
 
     for (int i = 0; batch[i].first.get() != nullptr; i++) {
         auto pair = dictionary->add(std::move(batch[i].first), std::move(batch[i].second), overwrite);
+
+        if (pair.second.get() == nullptr) inserted++;
+        else changed++;
 
         if (pair.first != dictionary->end()) {
             recover.push_back(std::move(pair));
@@ -172,7 +177,7 @@ bool Vault::import_passwords(import_type batch, crypto::SafeVar &&master_passwor
         throw;
     }
 
-    return true;
+    return {inserted, changed};
 }
 
 

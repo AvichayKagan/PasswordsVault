@@ -63,10 +63,22 @@ bool retry(T func, int times = 5, int delay = 10) {
 #endif
 
 
+
+struct Deleter {
+    void operator()(FILE* file) const { std::fclose(file); }
+};
+
+using SafeFILE = std::unique_ptr<FILE, Deleter>;
+
+
 } // anonymous namespace
 
 
 namespace disk {
+
+std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVar &&path) {
+    return std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>>(); // placehodler
+}
 
 
 void DiskManager::verify_pre_header() { // here we assume little endian, for portabilit change this in the future

@@ -240,6 +240,29 @@ void Shell::chmaster() {
     }
 }
 
+
+void Shell::import() {
+    bool overwrite = false;
+    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    while (true) {
+        crypto::SafeVar master_password(config::max_password_len);
+        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (*master_password.get() == '\0') break;
+
+        auto [inserted, changed] = vault->import_passwords(std::move(arg), std::move(master_password), overwrite);
+        if (inserted != -1) {
+            std::cout << inserted + (overwrite ? changed : 0) << "Passwords has been imported to the vault.\n";
+            std::cout << "-> " << inserted << "new passwords.\n";
+            if (overwrite) {
+                std::cout << "-> " << changed << "changed passwords." << std::endl;
+            }
+            else std::cout << "-> " << changed << "entries already existed in the vault, remain unchanged." << std::endl;
+            break;
+        }
+        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+    }
+}
+
 void Shell::run() {
     crypto::SafeVar input(max_input_len);
     int code;

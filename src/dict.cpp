@@ -64,9 +64,9 @@ std::pair<Dict::iterator, crypto::SafeVar> Dict::add(crypto::SafeVar &&name, cry
     auto iter = map.find(name);
     
     if (iter != map.end()) {
-        if (!overwrite) return {map.end(), crypto::SafeVar()};
-        password.encrypto(session_key.get());
         crypto::SafeVar old_pass = std::move(iter->second);
+        if (!overwrite) return {end(), std::move(old_pass)};
+        password.encrypto(session_key.get());
         iter->second = std::move(password);
         return {iter, std::move(old_pass)};
     }

@@ -8,6 +8,14 @@
 
 namespace disk {
 
+struct Deleter {
+    void operator()(FILE* file) const { std::fclose(file); }
+};
+
+using SafeFILE = std::unique_ptr<FILE, Deleter>;
+
+std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVar &&path);
+
 class Error : public config::GeneralError {
 public:
     explicit Error(const std::string& message, int errorCode = 1) 
@@ -34,13 +42,7 @@ enum ErrorCode {
 
 class DiskManager {
     private:
-        struct Deleter {
-            void operator()(FILE* file) const { std::fclose(file); }
-        };
-        
-        using SafeFILE = std::unique_ptr<FILE, Deleter>;
         SafeFILE file;
-
 
         static constexpr unsigned long long pre_header  = 0xDB1D26A4734EB42CLL;
 

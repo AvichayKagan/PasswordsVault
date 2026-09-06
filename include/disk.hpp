@@ -11,7 +11,7 @@ namespace disk {
 class Error : public config::GeneralError {
 public:
     explicit Error(const std::string& message, int errorCode = 1) 
-        : config::GeneralError(message, "DISK", errorCode) {}
+        : config::GeneralError(message, config::DISK, errorCode) {}
 };
 
 enum ErrorCode {

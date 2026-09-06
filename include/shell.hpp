@@ -8,7 +8,7 @@ namespace shell {
 class Error : public config::GeneralError {
     public:
         explicit Error(const std::string& message, int errorCode = 1) 
-            : config::GeneralError(message, "SHELL", errorCode) {}
+            : config::GeneralError(message, config::SHELL, errorCode) {}
     };
 
 class Shell {
@@ -82,8 +82,8 @@ class Shell {
 
     public:
         Shell() : command(max_input_len), arg(max_input_len) {
-            if (!safeio::is_interactive_terminal()) throw config::FatalError("The vault can only be run in an interactive terminal.", "IO");
-            if (safeio::set_terminal()) throw config::FatalError("Failed to initiate safe terminal.", "IO");
+            if (!safeio::is_interactive_terminal()) throw config::FatalError("The vault can only be run in an interactive terminal.", config::IO);
+            if (safeio::set_terminal()) throw config::FatalError("Failed to initiate safe terminal.", config::IO);
 
             try {
                 vault = std::make_unique<vault::Vault>();

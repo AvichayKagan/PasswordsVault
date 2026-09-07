@@ -3,6 +3,7 @@
 #include <exception>
 #include <filesystem>
 #include "crypt.hpp"
+#include <vector>
 #include "configs.hpp"
 #include "dict.hpp"
 

@@ -76,8 +76,68 @@ using SafeFILE = std::unique_ptr<FILE, Deleter>;
 
 namespace disk {
 
+crypto::SafeVar safe_read(crypto::SafeVar path) { // placeholder function, not safe at all!
+    FILE *fp = fopen((char *)path.get(), "rb");
+    if (!fp) throw;
+
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        fclose(fp);
+        throw;
+    }
+
+    long file_size = ftell(fp);
+    if (file_size < 0) {
+        fclose(fp);
+        throw;
+    }
+
+    rewind(fp);
+
+    crypto::SafeVar buffer(file_size + 1);
+
+    // 5. Read file contents into buffer
+    size_t bytes_read = fread(buffer.get(), 1, (size_t)file_size, fp);
+    if (bytes_read != (size_t)file_size && ferror(fp)) {
+        fclose(fp);
+        throw;
+    }
+
+    buffer.get()[bytes_read] = '\0';
+
+
+    fclose(fp);
+    return buffer;
+}
+
 std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVar &&path) {
-    return std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>>(); // placehodler
+    crypto::SafeVar buffer = safe_read(std::move(path));
+    std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> ret;
+
+    unsigned char *ch = buffer.get();
+    while (*ch != '\0') {
+        std::pair<crypto::SafeVar,crypto::SafeVar> pair(config::max_name_len, config::max_password_len);
+        
+        int  i = 0;
+        while(std::isspace(*(ch++)));
+        while (*ch != ',') {
+            pair.first.get()[i++] = *ch;
+            while(*(++ch) != '\n' && std::isspace(*ch));
+        }
+        pair.first.get()[i] = '\0';
+        while(*(++ch) != '\n' && std::isspace(*ch));
+
+        i = 0;
+        while (*ch != '\n' && *ch != '\0') {
+            pair.second.get()[i++] = *ch;
+            while(*(++ch) != '\n' && std::isspace(*ch));
+        }
+        pair.second.get()[i] = '\0';
+        while(*ch != '\0' && *(++ch) != '\n' && std::isspace(*ch));
+
+        ret.push_back(std::move(pair));
+    }
+
+    return ret;
 }
 
 

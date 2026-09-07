@@ -23,7 +23,7 @@ class Shell {
 
         int get_code();
 
-        void reset() { arg.memzero(); command.memzero(); }
+        void reset() { arg = crypto::SafeVar(max_input_len); command.memzero(); }
 
 
         // vault user operations

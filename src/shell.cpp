@@ -251,12 +251,12 @@ void Shell::import() {
 
         auto [inserted, changed] = vault->import_passwords(std::move(arg), std::move(master_password), overwrite);
         if (inserted != -1) {
-            std::cout << inserted + (overwrite ? changed : 0) << "Passwords has been imported to the vault.\n";
-            std::cout << "-> " << inserted << "new passwords.\n";
+            std::cout << inserted + (overwrite ? changed : 0) << " Passwords has been imported to the vault.\n";
+            std::cout << " -> " << inserted << " new passwords.\n";
             if (overwrite) {
-                std::cout << "-> " << changed << "changed passwords." << std::endl;
+                std::cout << " -> " << changed << " changed passwords." << std::endl;
             }
-            else std::cout << "-> " << changed << "entries already existed in the vault, remain unchanged." << std::endl;
+            else std::cout << " -> " << changed << " entries already existed in the vault, remain unchanged." << std::endl;
             break;
         }
         std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;

@@ -134,6 +134,36 @@ namespace crypto {
                 randombytes(ptr.get(), size - encryptoion_buff_len); 
                 return *this;
             }
+
+
+            SafeVar &random_ascii(SafeVar len) {
+                const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+";
+                constexpr int alphabet_len = sizeof(alphabet) - 1;
+                len.toNum();
+
+                for (size_t i = 0; i < len.get()[0]; i++) {
+                    size_t random_index = randombytes_uniform(alphabet_len);
+                    ptr[i] = alphabet[random_index];
+                }
+                ptr[len.get()[0] -1] = '\0';
+                return *this;
+            }
+
+            SafeVar &random_ascii() {
+                const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+";
+                constexpr int alphabet_len = sizeof(alphabet) - 1;
+
+                for (size_t i = 0; i < config::max_password_len; i++) {
+                    size_t random_index = randombytes_uniform(alphabet_len);
+                    ptr[i] = alphabet[random_index];
+                }
+                ptr[config::max_password_len -1] = '\0';
+                return *this;
+            }
+
+            void toNum() {
+                ptr[0] = std::stoul((char*)ptr.get()) + 1; // temporary, need more secure method
+            }
             
             void encrypto(Key key);
 

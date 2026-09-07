@@ -153,10 +153,10 @@ std::pair<int, int> Vault::import_passwords(crypto::SafeVar &&path, crypto::Safe
     auto batch = disk::get_batch(std::move(path));
     std::vector<std::pair<Dict::iterator, crypto::SafeVar>> recover; // add init size
 
-    for (int i = 0; batch[i].first.get() != nullptr; i++) {
-        auto pair = dictionary->add(std::move(batch[i].first), std::move(batch[i].second), overwrite);
+    for (auto &entry : batch) {
+        auto pair = dictionary->add(std::move(entry.first), std::move(entry.second), overwrite);
 
-        if (pair.second.get() == nullptr) inserted++;
+        if (pair.second.get() == nullptr && pair.first != dictionary->end()) inserted++;
         else changed++;
 
         if (pair.first != dictionary->end()) {

@@ -56,17 +56,17 @@ void Dict::load(crypto::SafeVar data){
 
 
 /* 
-return pair:
-    1. iterator to the new enrtry or end() if the dictionary was not mutated
-    2. a safevar which is the old passwrod (empty safevar if the entry didnt exist)
+return pair (itartor, safevar):
+    1. if the dictionary was not mutated end() and empty safevar (defaulted)
+    2.if the dictionary was mutated iterator the the mutated enrtry and safevar equal the the old password (empty if the entry didnt existed)
 */
 std::pair<Dict::iterator, crypto::SafeVar> Dict::add(crypto::SafeVar &&name, crypto::SafeVar &&password, bool overwrite) {
     auto iter = map.find(name);
     
     if (iter != map.end()) {
-        crypto::SafeVar old_pass = std::move(iter->second);
-        if (!overwrite) return {end(), std::move(old_pass)};
+        if (!overwrite) return {end(), crypto::SafeVar()};
         password.encrypto(session_key.get());
+        crypto::SafeVar old_pass = std::move(iter->second);
         iter->second = std::move(password);
         return {iter, std::move(old_pass)};
     }

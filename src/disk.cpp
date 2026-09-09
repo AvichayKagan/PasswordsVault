@@ -149,7 +149,7 @@ void DiskManager::atomic_write_file(crypto::SafeVar &master_key_enc, crypto::Sal
         if (!retry([&]() {
             file.reset(std::fopen(config::vault_path, "rb+"));
             return file != nullptr;
-        })) throw config::FatalError("Failed re-open the vault post atomic renmae.", "DISK", OpenError);
+        })) throw config::FatalError("Failed re-open the vault post atomic rename.", config::DISK, OpenError);
     }
     catch (...) {
         temp.reset();

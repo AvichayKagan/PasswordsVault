@@ -15,7 +15,7 @@ namespace crypto {
     class Error : public config::GeneralError {
     public:
         explicit Error(const std::string& message, int errorCode = 1) 
-            : config::GeneralError(message, "CRYPTO", errorCode) {}
+            : config::GeneralError(message, config::CRYPTO, errorCode) {}
     };
 
     enum ErrorCode {

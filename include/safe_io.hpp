@@ -19,7 +19,7 @@ extern "C" {
 class SafeTerminal {
 public:
     SafeTerminal() {
-        if (set_terminal()) throw config::FatalError("Failed to initiate safe terminal.", "IO");
+        if (set_terminal()) throw config::FatalError("Failed to initiate safe terminal.", config::IO);
     }
 
     ~SafeTerminal() {

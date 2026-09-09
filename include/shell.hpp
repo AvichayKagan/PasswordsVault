@@ -48,6 +48,7 @@ class Shell {
         static constexpr const char* chpass_desc   = "Detailed usage instructions for the chpass command go here.";
         static constexpr const char* rename_desc   = "Detailed usage instructions for the rename command go here.";
         static constexpr const char* chmaster_desc = "Detailed usage instructions for the chmaster command go here.";
+        static constexpr const char* import_desc = "Detailed usage instructions for the import_desc command go here.";
 
         struct Flag {
             const char *name;
@@ -71,7 +72,9 @@ class Shell {
         enum flags_codes {
             INFO = (1 << 0),
             COPY = (1 << 1),
-            GEN = (1 << 2)
+            GEN = (1 << 2),
+            OVERWRITE = (1 << 3),
+            DEL = (1 << 4)
         };
 
         static  constexpr Flag no_flags[] = {
@@ -85,21 +88,29 @@ class Shell {
             {}
         }; 
 
+        static  constexpr Flag import_flags[] = {
+            {"overwrite", OVERWRITE, false}, 
+            {"del", DEL, false}, 
+            {}
+        }; 
+    
+
         static constexpr Command commands[] = {
             // name       allow_close has_args sudo   methodPtr         flags      desc_short                                     desc_long
 
-            {"open",      true,       false,   true,  &Shell::open,     no_flags,  "Open and unlock the vault",                   open_desc},
-            {"close",     true,       false,   false, &Shell::close,    no_flags,  "Close and lock the vault",                    close_desc},
-            {"exit",      true,       false,   false, &Shell::exit,     no_flags,  "Safely lock the vault and exit the program",  exit_desc},
-            {"help",      true,       false,   false, &Shell::help,     no_flags,  "Show help and usage information",             help_desc},
-            {"add",       false,      true,    true,  &Shell::add,      add_flags, "Add a new password",                          add_desc},
-            {"list",      false,      false,   false, &Shell::list,     no_flags,  "List all entry names in the vault",           list_desc},
-            {"show",      false,      true,    false, &Shell::show,     no_flags,  "Show a password",                             show_desc},
-            {"del",       false,      true,    true,  &Shell::del,      no_flags,  "Delete a password",                           del_desc},
-            {"info",      true,       false,   false, &Shell::info,     no_flags,  "Show vault information and status",           info_desc},
-            {"chpass",    false,      true,    true,  &Shell::chpass,   no_flags,  "Change the password of an existing entry",    chpass_desc},
-            {"rename",    false,      true,    true,  &Shell::rename,   no_flags,  "Rename an entry",                             rename_desc},
-            {"chmaster",  false,      false,   true,  &Shell::chmaster, no_flags,  "Change the vault's master password",          chmaster_desc},
+            {"open",      true,       false,   true,  &Shell::open,     no_flags,      "Open and unlock the vault",                   open_desc},
+            {"close",     true,       false,   false, &Shell::close,    no_flags,      "Close and lock the vault",                    close_desc},
+            {"exit",      true,       false,   false, &Shell::exit,     no_flags,      "Safely lock the vault and exit the program",  exit_desc},
+            {"help",      true,       false,   false, &Shell::help,     no_flags,      "Show help and usage information",             help_desc},
+            {"add",       false,      true,    true,  &Shell::add,      add_flags,     "Add a new password",                          add_desc},
+            {"list",      false,      false,   false, &Shell::list,     no_flags,      "List all entry names in the vault",           list_desc},
+            {"show",      false,      true,    false, &Shell::show,     no_flags,      "Show a password",                             show_desc},
+            {"del",       false,      true,    true,  &Shell::del,      no_flags,      "Delete a password",                           del_desc},
+            {"info",      true,       false,   false, &Shell::info,     no_flags,      "Show vault information and status",           info_desc},
+            {"chpass",    false,      true,    true,  &Shell::chpass,   no_flags,      "Change the password of an existing entry",    chpass_desc},
+            {"rename",    false,      true,    true,  &Shell::rename,   no_flags,      "Rename an entry",                             rename_desc},
+            {"chmaster",  false,      false,   true,  &Shell::chmaster, no_flags,      "Change the vault's master password",          chmaster_desc},
+            {"import",    false,      true,    true,  &Shell::import,   import_flags,  "Change the vault's master password",          import_desc},
             {} // sentinel
         };
 

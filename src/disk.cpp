@@ -118,7 +118,7 @@ std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVa
         std::pair<crypto::SafeVar,crypto::SafeVar> pair(config::max_name_len, config::max_password_len);
         
         int  i = 0;
-        while(std::isspace(*(ch++)));
+        while(std::isspace(*ch)) ch++;
         while (*ch != ',') {
             pair.first.get()[i++] = *ch;
             while(*(++ch) != '\n' && std::isspace(*ch));

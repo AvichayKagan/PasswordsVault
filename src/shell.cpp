@@ -232,8 +232,8 @@ void Shell::chmaster() {
 }
 
 
-void Shell::import() {
-    bool overwrite = false;
+void Shell::import() { // need to implmet the del flag
+    bool overwrite = encoding.flags & OVERWRITE;
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);

@@ -15,7 +15,7 @@ namespace vault {
 class Error : public config::GeneralError {
     public:
         explicit Error(const std::string& message, int errorCode) 
-            : config::GeneralError(message, "VAULT", errorCode) {}
+            : config::GeneralError(message, config::VAULT, errorCode) {}
 };
 
 enum ErrorCode {

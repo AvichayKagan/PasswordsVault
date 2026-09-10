@@ -153,13 +153,18 @@ void DiskManager::atomic_write_file(crypto::SafeVar &master_key_enc, crypto::Sal
     }
     catch (...) {
         temp.reset();
-        if (!renamed) {
-            std::error_code ec;
-            if (!retry([&]() {
-                std::filesystem::remove(config::vault_path_temp, ec);
-                return !ec;
-            })) std::cerr << "WARNING: Failed to clean up temp file: " << config::vault_path_temp << ": " << ec.message() << "\n";
-        }
+        std::error_code ec;
+        if (!renamed && !retry([&]() {
+            std::filesystem::remove(config::vault_path_temp, ec);
+            return !ec;
+        })) std::cerr << "WARNING: Failed to clean up temp file: " << config::vault_path_temp << ": " << ec.message() << "\n";
+
+        // re-open the file
+        if (file == nullptr && !retry([&]() {
+            file.reset(std::fopen(config::vault_path, "rb+"));
+            return file != nullptr;
+        })) throw config::FatalError("Failed re-open the vault post atomic rename.", config::DISK, OpenError);
+
         throw;
     }
 }

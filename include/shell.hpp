@@ -74,7 +74,8 @@ class Shell {
             COPY = (1 << 1),
             GEN = (1 << 2),
             OVERWRITE = (1 << 3),
-            DEL = (1 << 4)
+            DEL = (1 << 4),
+            CLEAR = (1 << 5)
         };
 
         static  constexpr Flag no_flags[] = {
@@ -91,6 +92,7 @@ class Shell {
         static  constexpr Flag import_flags[] = {
             {"overwrite", OVERWRITE, false}, 
             {"del", DEL, false}, 
+            {"clear", CLEAR, false}, 
             {}
         }; 
     

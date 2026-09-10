@@ -234,23 +234,58 @@ void Shell::chmaster() {
 
 void Shell::import() { // need to implmet the del flag
     bool overwrite = encoding.flags & OVERWRITE;
+    bool clear = encoding.flags & CLEAR;
+
+    if (clear) {
+        std::cout << "This operation will clear out all existing passwords in the vault (" << vault->get_count() << " passwords). are you sure you want to continue? (y/n)" << std::endl;;
+        int ch = safeio::key_press(); // will not wait for enter!
+        if (ch != 'y' && ch != 'Y') return;
+    }
+
     std::cout << "Please enter the master password to continue with this operation: " << std::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
         if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
-        if (*master_password.get() == '\0') break;
+        if (*master_password.get() == '\0') return;
 
-        auto [inserted, changed] = vault->import_passwords(std::move(encoding.arg), std::move(master_password), overwrite);
+        auto [inserted, changed] = vault->import_passwords(encoding.arg, std::move(master_password), overwrite, clear);
         if (inserted != -1) {
-            std::cout << inserted + (overwrite ? changed : 0) << " Passwords has been imported to the vault.\n";
-            std::cout << " -> " << inserted << " new passwords.\n";
-            if (overwrite) {
-                std::cout << " -> " << changed << " changed passwords." << std::endl;
+            if (clear) std::cout << "The vault has been cleared and ";
+            std::cout << inserted + (overwrite ? changed : 0) << " passwords has been imported to the vault.\n";
+            if (!clear) {
+                std::cout << " -> " << inserted << " new passwords.\n";
+                if (overwrite) {
+                    std::cout << " -> " << changed << " changed passwords." << std::endl;
+                }
+                else std::cout << " -> " << changed << " entries already existed in the vault, remain unchanged.";
             }
-            else std::cout << " -> " << changed << " entries already existed in the vault, remain unchanged." << std::endl;
+            std::cout << '\n' << std::endl;
             break;
         }
         std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+    }
+
+    if (!(encoding.flags & DEL)) {
+        std::cout << "It is highly recommended to securly delete the import file after importing. do you want to delete it (if import succeeded)? (y/n)" << std::endl;
+        int ch = safeio::key_press(); // will not wait for enter!
+        if (ch != 'y' && ch != 'Y') {
+            std::cout << "Warning: import file '" << encoding.arg.get() <<  "' has not been deleted." << std::endl;
+            return;
+        }
+    }
+
+    try {
+        vault::secure_delete(encoding.arg);
+        std::cout << "Import file '" << encoding.arg.get() <<  "' has been deleted." << std::endl;
+    }
+    catch (const config::GeneralError& e) {
+        std::cerr << "Warning: secure deletion of the import file '" << encoding.arg.get() <<  "' has failed, " << e.what() << " (MODULE: " << e.module() << ", CODE: "<< e.code() << ")" << '\n';
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Warning: secure deletion of the import file '" << encoding.arg.get() <<  "' has failed, " << e.what() << '\n';
+    }
+    catch (...) {
+        std::cerr << "Warning: secure deletion of the import file '" << encoding.arg.get() <<  "' has failed.\n";
     }
 }
 

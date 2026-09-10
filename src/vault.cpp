@@ -145,39 +145,35 @@ bool Vault::change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master
 }
 
 
-std::pair<int, int> Vault::import_passwords(crypto::SafeVar &&path, crypto::SafeVar &&master_password, bool overwrite) {
+std::pair<int, int> Vault::import_passwords(crypto::SafeVar &path, crypto::SafeVar &&master_password, bool overwrite, bool clear) {
     crypto::SafeVar master_key = get_master_key(std::move(master_password));
     if (master_key.get() == nullptr) return {-1, -1};
     
-    int inserted = 0, changed = 0;
-    auto batch = disk::get_batch(std::move(path));
-    std::vector<std::pair<Dict::iterator, crypto::SafeVar>> recover; // add init size
+    int new_ = 0, existed = 0;
+    auto batch = disk::get_batch(path);
+
+
+    Dict temp;
+    if (!clear) temp = *dictionary;
+    else temp = Dict(batch.size());
 
     for (auto &entry : batch) {
-        auto pair = dictionary->add(std::move(entry.first), std::move(entry.second), overwrite);
+        auto pair = temp.add(std::move(entry.first), std::move(entry.second), overwrite);
 
-        if (pair.second.get() == nullptr && pair.first != dictionary->end()) inserted++;
-        else changed++;
-
-        if (pair.first != dictionary->end()) {
-            recover.push_back(std::move(pair));
-        }
+        if (pair.second.get() == nullptr && pair.first != temp.end()) new_++;
+        else existed++;
     }
+    std::swap(temp, *dictionary);
 
     try {
         flush(std::move(master_key));
     }
     catch (...) {
-        for (auto &pair : recover) {
-            if (pair.second.get() == nullptr) {
-                dictionary->erase(pair.first);
-            }
-            else pair.first->second = std::move(pair.second);
-        }
+        std::swap(temp, *dictionary);
         throw;
     }
 
-    return {inserted, changed};
+    return {new_, existed};
 }
 
 

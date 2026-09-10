@@ -3,10 +3,7 @@ commands to add:
     copy
     reset / destroy
     search
-    import --del (will hash resize)
     export
-    add --gen --len --copy
-    --info flag for each command with security ranks
 
 show single passwrod without opening teh entire vault
 
@@ -14,19 +11,13 @@ fix the io to eccho commands? to not deltet the local output but deletre the glo
 
 refactor safevar
 
-improve the parser and fix the safevar size issue
+improve the parser
 
 make the vault module itself safe and check for its arguments ("password does not exists in vault")
 
-make safevar into a template?
-
 fix the directory for encapsulation
 
-refcator shell.cpp using teh data driven commands definition
-
 fix headers and soidum abstraction
-
-encrypt the names also
 
 add colors to terminal
 

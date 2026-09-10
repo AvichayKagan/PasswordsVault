@@ -15,7 +15,9 @@ struct Deleter {
 
 using SafeFILE = std::unique_ptr<FILE, Deleter>;
 
-std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVar &&path);
+std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVar &path);
+
+void safe_del(crypto::SafeVar &path);
 
 class Error : public config::GeneralError {
 public:

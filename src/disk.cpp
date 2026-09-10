@@ -76,7 +76,7 @@ using SafeFILE = std::unique_ptr<FILE, Deleter>;
 
 namespace disk {
 
-crypto::SafeVar safe_read(crypto::SafeVar path) { // placeholder function, not safe at all!
+crypto::SafeVar safe_read(crypto::SafeVar &path) { // placeholder function, not safe at all!
     FILE *fp = fopen((char *)path.get(), "rb");
     if (!fp) throw;
 
@@ -109,8 +109,49 @@ crypto::SafeVar safe_read(crypto::SafeVar path) { // placeholder function, not s
     return buffer;
 }
 
-std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVar &&path) {
-    crypto::SafeVar buffer = safe_read(std::move(path));
+void safe_del(crypto::SafeVar &path) { // placeholder function
+    FILE *fp = fopen((char *)path.get(), "r+b");
+    if (!fp) throw;
+
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        fclose(fp);
+        throw;
+    }
+
+    long file_size = ftell(fp);
+    if (file_size < 0) {
+        fclose(fp);
+        throw;
+    }
+
+    rewind(fp);
+
+    char buffer[128] = {0};
+    long bytes_written = 0;
+
+    while (bytes_written < file_size) {
+        long bytes_to_write = file_size - bytes_written;
+        if (bytes_to_write > 128) {
+            bytes_to_write = 128;
+        }
+
+        size_t written = fwrite(buffer, 1, bytes_to_write, fp);
+        if (written != (size_t)bytes_to_write) {
+            fclose(fp);
+            throw;
+        }
+        bytes_written += written;
+    }
+    os_flush(fp);
+    fclose(fp);
+
+    const char* garbage_name = "ghdg652!@!csdvhuyf673!vev78v"; //should be random!
+    if (rename((char *)path.get(), garbage_name)) throw;
+    if (remove(garbage_name)) throw;
+}
+
+std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVar &path) {
+    crypto::SafeVar buffer = safe_read(path);
     std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> ret;
 
     unsigned char *ch = buffer.get();
@@ -212,7 +253,7 @@ void DiskManager::atomic_write_file(crypto::SafeVar &master_key_enc, crypto::Sal
         // rename & swap
         std::error_code ec;
         if (!retry([&]() {
-            std::filesystem::rename(config::vault_path_temp, config::vault_path, ec);
+            std::filesystem::rename(config::vault_path_temp, config::vault_path, ec); // repalce the temp with random name!
             return !ec;
         })) throw Error("Failed swap temp with file with vault file: " + ec.message(), RenameError);
         renamed = true;

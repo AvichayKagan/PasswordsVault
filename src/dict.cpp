@@ -58,7 +58,7 @@ void Dict::load(crypto::SafeVar data){
 /* 
 return pair (itartor, safevar):
     1. if the dictionary was not mutated end() and empty safevar (defaulted)
-    2.if the dictionary was mutated iterator the the mutated enrtry and safevar equal the the old password (empty if the entry didnt existed)
+    2. if the dictionary was mutated iterator the the mutated enrtry and safevar equal the the old password (empty if the entry didnt existed)
 */
 std::pair<Dict::iterator, crypto::SafeVar> Dict::add(crypto::SafeVar &&name, crypto::SafeVar &&password, bool overwrite) {
     auto iter = map.find(name);

@@ -13,8 +13,6 @@ struct SafeVarHash {
         crypto::SafeVar pepper;
 
     public:
-        SafeVarHash() = default;
-
         SafeVarHash(crypto::SafeVar &session_key) :pepper(session_key) { pepper.short_hash_pepper_gen("HashMap"); }
 
         size_t operator()(const crypto::SafeVar& obj) const {
@@ -36,6 +34,8 @@ class Dict {
         Map map;
 
     public:
+        Dict() : session_key(crypto::key_len, true), map(0, SafeVarHash(session_key)) {}
+        Dict(size_t size) : session_key(crypto::key_len, true), map(1.5 * size, SafeVarHash(session_key)) {}
         Dict(crypto::SafeVar data) : session_key(crypto::key_len, true), map(1.5 * data.get_size()/config::slot_len, SafeVarHash(session_key)) { load(std::move(data)); }
 
         // add decrypt and encrypt methods

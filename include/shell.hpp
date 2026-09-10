@@ -35,6 +35,7 @@ class Shell {
         void chpass();
         void rename();
         void chmaster();
+        void clear();
         // non sudo
         void list();
         void show();
@@ -65,6 +66,7 @@ class Shell {
             {"chpass",   &Shell::chpass,   false,   true,     true },
             {"rename",   &Shell::rename,   false,   true,     true },
             {"chmaster", &Shell::chmaster, false,   false,    true },
+            {"clear",    &Shell::clear,    false,   false,    true },
             {} //sentinel
         };
 

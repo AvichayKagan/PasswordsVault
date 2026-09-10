@@ -36,6 +36,7 @@ class Dict {
         Map map;
 
     public:
+        Dict() : session_key(crypto::key_len, true), map(0, SafeVarHash(session_key)) {}
         Dict(crypto::SafeVar data) : session_key(crypto::key_len, true), map(1.5 * data.get_size()/config::slot_len, SafeVarHash(session_key)) { load(std::move(data)); }
 
         // add decrypt and encrypt methods

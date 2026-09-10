@@ -40,6 +40,10 @@ class Vault {
                     if (!ptr) throw Error("Attempt accessing a closed vault.", PremissionError); 
                     return ptr.get(); 
                 }
+                Dict& operator*() const { 
+                    if (!ptr) throw Error("Attempt accessing a closed vault.", PremissionError); 
+                    return *ptr.get(); 
+                }
         };
 
         crypto::Salt salt;
@@ -83,6 +87,8 @@ class Vault {
         bool change_name(crypto::SafeVar &&name, crypto::SafeVar &new_name, crypto::SafeVar &&master_password);
 
         bool change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_password);
+
+        bool clear(crypto::SafeVar &&master_password);
 
         bool contains(crypto::SafeVar &name) { return dictionary->contains(name); }
 

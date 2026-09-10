@@ -161,5 +161,24 @@ bool Vault::change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master
 }
 
 
+bool Vault::clear(crypto::SafeVar &&master_password) {
+    crypto::SafeVar master_key = get_master_key(std::move(master_password));
+    if (master_key.get() == nullptr) return false;
+
+    Dict backup;
+    std::swap(backup, *dictionary);
+    
+    try {
+        flush(std::move(master_key));
+    }
+    catch (...) {
+        std::swap(backup, *dictionary);
+        throw;
+    }
+
+    return true;
+}
+
+
 
 } // namespace vault

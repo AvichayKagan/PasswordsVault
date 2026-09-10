@@ -240,6 +240,26 @@ void Shell::chmaster() {
     }
 }
 
+void Shell::clear() {
+    char ch;
+    std::cout << "This operation will clear out all existing passwords in the vault (" << vault->get_count() << " passwords). are you sure you want to continue? (y/n)";
+    std::cin >> ch; // flush here the stdin!
+    if (ch != 'y' && ch != 'Y') return; // BUG: immidetly go without pressing enter
+
+    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    while (true) {
+        crypto::SafeVar master_password(config::max_password_len);
+        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (*master_password.get() == '\0') break;
+
+        if (vault->clear(std::move(master_password))) {
+            std::cout << "All vault entries have been cleared." << std::endl;
+            break;
+        }
+        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+    }
+}
+
 void Shell::run() {
     crypto::SafeVar input(max_input_len);
     int code;

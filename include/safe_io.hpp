@@ -32,12 +32,6 @@ public:
     SafeTerminal& operator=(SafeTerminal&&) = delete;
 };
 
-class Secret {
-public:
-    const char *message;
-    explicit Secret(const char* _message) :message(_message) {}
-    explicit Secret(const unsigned char* _message) :message((char *)_message) {}
-};
 
 class Endl {};
 class Flush {};
@@ -108,13 +102,14 @@ class SafeStream {
         }
 
         
-        SafeStream& operator<<(const Secret& str) {
-            if (str.message != nullptr) {
-                for (int i = 0; str.message[i] != '\0'; i++) {
-                    if (str.message[i] == '\n') line_count++;
+        SafeStream& operator<<(const crypto::SafeVar& secret) {
+            const char *str = (char *)secret.get();
+            if (str != nullptr) {
+                for (int i = 0; str[i] != '\0'; i++) {
+                    if (str[i] == '\n') line_count++;
                 }
                 std::cout << std::flush;
-                safe_write(str.message);
+                safe_write(str);
             }
             return *this;
         }

@@ -38,7 +38,7 @@ void Shell::list() {
 
     safeio::SafeStream cout("The vault content has been listed.");
     for (const auto& i : *vault) {
-        cout << safeio::Secret(i.first.get()) << safeio::endl;
+        cout << i.first << safeio::endl;
     }
     cout << "\nPress any key to delete the list..." << safeio::flush;
     safeio::key_press();
@@ -142,7 +142,7 @@ void Shell::show() {
     }
 
     safeio::SafeStream cout("A password has been showed.");
-    cout << "The password for '" << safeio::Secret(encoding.arg.get()) << "' is: '" << safeio::Secret(password.get()) << "', Press any key to delete this massage, or 'c' to copy the password." << safeio::flush;
+    cout << "The password for '" << encoding.arg << "' is: '" << password << "', Press any key to delete this massage, or 'c' to copy the password." << safeio::flush;
     int ch = safeio::key_press();
     if (ch == 'c') {
 

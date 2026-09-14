@@ -4,6 +4,7 @@ commands to add:
     reset / destroy
     search
     export
+    import - improve csv parser and replace the safe_read placeholder
 
 show single passwrod without opening teh entire vault
 

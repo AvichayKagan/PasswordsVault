@@ -62,10 +62,7 @@ bool retry(T func, int times = 5, int delay = 10) {
 
 #endif
 
-} // anonymous namespace
 
-
-namespace disk {
 
 crypto::SafeVar safe_read(crypto::SafeVar &path) { // placeholder function, not safe at all!
     FILE *fp = fopen((char *)path.get(), "rb");
@@ -99,6 +96,12 @@ crypto::SafeVar safe_read(crypto::SafeVar &path) { // placeholder function, not 
     fclose(fp);
     return buffer;
 }
+
+} // anonymous namespace
+
+
+namespace disk {
+
 
 void safe_del(crypto::SafeVar &path) { // placeholder function
     constexpr int block_size = 8192;

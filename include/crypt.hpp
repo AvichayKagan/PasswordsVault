@@ -35,6 +35,8 @@ namespace crypto {
 
     unsigned char *random(unsigned char *target, size_t len);
 
+    char *random_alpha_numeric(char *target, size_t len);
+
     class SafeVar {
         private:
             struct Deleter {

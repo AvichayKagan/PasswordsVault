@@ -34,6 +34,7 @@ enum ErrorCode {
 
     CreateError = 11,
     OpenError = 12,
+    DeleteError = 13,
 
     RenameError = 21,
 

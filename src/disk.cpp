@@ -148,6 +148,14 @@ std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVa
     crypto::SafeVar buffer = safe_read(path);
     std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> ret;
 
+    auto trim = [](std::pair<crypto::SafeVar,crypto::SafeVar>& pair) {
+        char *ch = (char*)pair.first.get();
+        size_t len = std::strlen(ch);
+        ch+= len;
+        while (std::isspace(*(--ch)));
+        *(++ch) = '\0';
+    };
+
     unsigned char *ch = buffer.get();
     while (*ch != '\0') {
         std::pair<crypto::SafeVar,crypto::SafeVar> pair(config::max_name_len, config::max_password_len);
@@ -156,7 +164,7 @@ std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVa
         while(std::isspace(*ch)) ch++;
         while (*ch != ',') {
             pair.first.get()[i++] = *ch;
-            while(*(++ch) != '\n' && std::isspace(*ch));
+            ch++;
         }
         pair.first.get()[i] = '\0';
         while(*(++ch) != '\n' && std::isspace(*ch));
@@ -164,11 +172,12 @@ std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVa
         i = 0;
         while (*ch != '\n' && *ch != '\0') {
             pair.second.get()[i++] = *ch;
-            while(*(++ch) != '\n' && std::isspace(*ch));
+            ch++;
         }
         pair.second.get()[i] = '\0';
         while(*ch != '\0' && *(++ch) != '\n' && std::isspace(*ch));
 
+        trim(pair);
         ret.push_back(std::move(pair));
     }
 

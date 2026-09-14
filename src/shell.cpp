@@ -8,6 +8,7 @@ void Shell::help() {
                 << "-------------------\n";
     for (int i = 0; commands[i].name != nullptr; i++) {
         const char *arg =  commands[i].has_arg ? "[name]" : "      ";
+        if (!strcmp(commands[i].name, "import")) arg = "[path]"; // ad hoc but works
         std::cout << "  " << std::left << std::setw(max_command_len + 1) << commands[i].name << arg << " - " << commands[i].desc_short << '\n';
     }
     std::cout << "\n Use '[command name] -info' for additional information on each command (e.g. flags, specs, security consideration, etc...)" << std::endl;

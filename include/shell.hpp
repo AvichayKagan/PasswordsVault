@@ -26,6 +26,7 @@ class Shell {
         void rename();
         void chmaster();
         void import();
+        void clear();
         // non sudo
         void list();
         void show();
@@ -48,7 +49,8 @@ class Shell {
         static constexpr const char* chpass_desc   = "Detailed usage instructions for the chpass command go here.";
         static constexpr const char* rename_desc   = "Detailed usage instructions for the rename command go here.";
         static constexpr const char* chmaster_desc = "Detailed usage instructions for the chmaster command go here.";
-        static constexpr const char* import_desc = "Detailed usage instructions for the import_desc command go here.";
+        static constexpr const char* import_desc   = "Detailed usage instructions for the import command go here.";
+        static constexpr const char* clear_desc    = "Detailed usage instructions for the clear command go here.";
 
         struct Flag {
             const char *name;
@@ -112,7 +114,8 @@ class Shell {
             {"chpass",    false,      true,    true,  &Shell::chpass,   no_flags,      "Change the password of an existing entry",    chpass_desc},
             {"rename",    false,      true,    true,  &Shell::rename,   no_flags,      "Rename an entry",                             rename_desc},
             {"chmaster",  false,      false,   true,  &Shell::chmaster, no_flags,      "Change the vault's master password",          chmaster_desc},
-            {"import",    false,      true,    true,  &Shell::import,   import_flags,  "Change the vault's master password",          import_desc},
+            {"import",    false,      true,    true,  &Shell::import,   import_flags,  "Import passwords to the vault from a file.",  import_desc},
+            {"clear",     false,      false,    true,  &Shell::clear,    no_flags,      "Clear the entire vault content.",             clear_desc},
             {} // sentinel
         };
 

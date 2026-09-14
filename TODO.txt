@@ -1,5 +1,6 @@
 complete commands and flags, add frirnedlier cli (levennstein metirc etc..)
 commands to add:
+    clear - fix the prompt ux type big (not wait for enter)
     copy
     reset / destroy
     search

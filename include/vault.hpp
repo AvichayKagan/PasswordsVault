@@ -89,6 +89,8 @@ class Vault {
         bool change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_password);
 
         std::pair<int, int> import_passwords(crypto::SafeVar &path, crypto::SafeVar &&master_password, bool overwrite, bool clear);
+        
+        bool clear(crypto::SafeVar &&master_password);
 
         bool contains(crypto::SafeVar &name) { return dictionary->contains(name); }
 

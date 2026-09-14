@@ -26,6 +26,8 @@ enum ErrorCode {
     InitError = 20
 };
 
+static inline void secure_delete(crypto::SafeVar &path) { disk::safe_del(path); }
+
 class Vault {
     private:
         class DictPtr {
@@ -39,6 +41,10 @@ class Vault {
                 Dict* operator->() const { 
                     if (!ptr) throw Error("Attempt accessing a closed vault.", PremissionError); 
                     return ptr.get(); 
+                }
+                Dict& operator*() const { 
+                    if (!ptr) throw Error("Attempt accessing a closed vault.", PremissionError); 
+                    return *ptr.get(); 
                 }
         };
 
@@ -78,11 +84,11 @@ class Vault {
 
         bool del_password(crypto::SafeVar &name, crypto::SafeVar &&master_password);
 
-        bool change_password(crypto::SafeVar &name, crypto::SafeVar &&password, crypto::SafeVar &&master_password);
-
         bool change_name(crypto::SafeVar &&name, crypto::SafeVar &new_name, crypto::SafeVar &&master_password);
 
         bool change_master(crypto::SafeVar &&new_master, crypto::SafeVar &&master_password);
+
+        std::pair<int, int> import_passwords(crypto::SafeVar &path, crypto::SafeVar &&master_password, bool overwrite, bool clear);
 
         bool contains(crypto::SafeVar &name) { return dictionary->contains(name); }
 

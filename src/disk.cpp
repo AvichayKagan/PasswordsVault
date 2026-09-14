@@ -63,10 +63,129 @@ bool retry(T func, int times = 5, int delay = 10) {
 #endif
 
 
+
+crypto::SafeVar safe_read(crypto::SafeVar &path) { // placeholder function, not safe at all!
+    FILE *fp = fopen((char *)path.get(), "rb");
+    if (!fp) throw;
+
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        fclose(fp);
+        throw;
+    }
+
+    long file_size = ftell(fp);
+    if (file_size < 0) {
+        fclose(fp);
+        throw;
+    }
+
+    rewind(fp);
+
+    crypto::SafeVar buffer(file_size + 1);
+
+    // 5. Read file contents into buffer
+    size_t bytes_read = fread(buffer.get(), 1, (size_t)file_size, fp);
+    if (bytes_read != (size_t)file_size && ferror(fp)) {
+        fclose(fp);
+        throw;
+    }
+
+    buffer.get()[bytes_read] = '\0';
+
+
+    fclose(fp);
+    return buffer;
+}
+
 } // anonymous namespace
 
 
 namespace disk {
+
+
+void safe_del(crypto::SafeVar &path) { // placeholder function
+    constexpr int block_size = 8192;
+    constexpr int name_size = 32;
+    const char *original_path = (char *)path.get();
+
+    SafeFILE fp(fopen(original_path, "rb+"));
+    if (fp == nullptr) throw Error("Fail to open the file to rewrite before deletion.", OpenError);
+
+    if (fseek(fp.get(), 0, SEEK_END) != 0) throw Error("Fail to seek end of to delete.", SeekError);
+
+    long file_size = ftell(fp.get()); //what about files size more than 2GB?
+    if (file_size < 0) throw Error("Fail to get size of file to delete.", TellError);
+
+    rewind(fp.get());
+
+    unsigned char buffer[block_size];
+    long bytes_written = 0;
+
+    while (bytes_written < file_size) {
+        long bytes_to_write = file_size - bytes_written;
+        if (bytes_to_write > block_size) bytes_to_write = block_size;
+
+        crypto::random(buffer, block_size);
+        size_t written = fwrite(buffer, 1, bytes_to_write, fp.get());
+        if (written != (size_t)bytes_to_write) {
+            throw Error("Fail to write garbage to file to delete.", WriteError);
+        }
+        bytes_written += written;
+    }
+    os_flush(fp.get());
+    fp.reset();
+
+
+    char garbage_name[name_size + 1];
+    crypto::random_alpha_numeric(garbage_name, name_size);
+    garbage_name[name_size] = '\0';
+
+    std::filesystem::path file_path(original_path);
+    std::filesystem::path garbage_name_path = file_path.parent_path() / garbage_name;
+
+    if (rename(original_path, garbage_name_path.c_str())) throw Error("Fail to rename file to delete.", RenameError);
+    if (remove(garbage_name_path.c_str())) throw Error("Fail to delete the file.", DeleteError);
+}
+
+std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVar &path) {
+    crypto::SafeVar buffer = safe_read(path);
+    std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> ret;
+
+    auto trim = [](std::pair<crypto::SafeVar,crypto::SafeVar>& pair) {
+        char *ch = (char*)pair.first.get();
+        size_t len = std::strlen(ch);
+        ch+= len;
+        while (std::isspace(*(--ch)));
+        *(++ch) = '\0';
+    };
+
+    unsigned char *ch = buffer.get();
+    while (*ch != '\0') {
+        std::pair<crypto::SafeVar,crypto::SafeVar> pair(config::max_name_len, config::max_password_len);
+        
+        int  i = 0;
+        while(std::isspace(*ch)) ch++;
+        while (*ch != ',') {
+            pair.first.get()[i++] = *ch;
+            ch++;
+        }
+        pair.first.get()[i] = '\0';
+        while(*(++ch) != '\n' && std::isspace(*ch));
+
+        i = 0;
+        while (*ch != '\n' && *ch != '\0') {
+            pair.second.get()[i++] = *ch;
+            ch++;
+        }
+        pair.second.get()[i] = '\0';
+        while(*ch != '\0' && *(++ch) != '\n' && std::isspace(*ch));
+
+        trim(pair);
+        ret.push_back(std::move(pair));
+    }
+
+    return ret;
+}
 
 
 void DiskManager::verify_pre_header() { // here we assume little endian, for portabilit change this in the future
@@ -80,8 +199,8 @@ void DiskManager::verify_pre_header() { // here we assume little endian, for por
 long long DiskManager::get_size() {
     if (std::fseek(file.get(), 0, SEEK_END) != 0) throw Error("Failed to seek to end of the vault file", SeekError);
 
-    int file_size = std::ftell(file.get());
-    if (file_size == -1L) throw Error("Failed to seek to end of the vault file", TellError);
+    int file_size = std::ftell(file.get()); // what if the size is alrger than 2GB?
+    if (file_size == -1L) throw Error("Failed to tell the vault file size", TellError);
 
     return file_size;
 }
@@ -140,7 +259,7 @@ void DiskManager::atomic_write_file(crypto::SafeVar &master_key_enc, crypto::Sal
         // rename & swap
         std::error_code ec;
         if (!retry([&]() {
-            std::filesystem::rename(config::vault_path_temp, config::vault_path, ec);
+            std::filesystem::rename(config::vault_path_temp, config::vault_path, ec); // repalce the temp with random name!
             return !ec;
         })) throw Error("Failed swap temp with file with vault file: " + ec.message(), RenameError);
         renamed = true;

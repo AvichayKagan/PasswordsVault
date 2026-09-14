@@ -3,10 +3,21 @@
 #include <exception>
 #include <filesystem>
 #include "crypt.hpp"
+#include <vector>
 #include "configs.hpp"
 #include "dict.hpp"
 
 namespace disk {
+
+struct Deleter {
+    void operator()(FILE* file) const { std::fclose(file); }
+};
+
+using SafeFILE = std::unique_ptr<FILE, Deleter>;
+
+std::vector<std::pair<crypto::SafeVar,crypto::SafeVar>> get_batch(crypto::SafeVar &path);
+
+void safe_del(crypto::SafeVar &path);
 
 class Error : public config::GeneralError {
 public:
@@ -23,6 +34,7 @@ enum ErrorCode {
 
     CreateError = 11,
     OpenError = 12,
+    DeleteError = 13,
 
     RenameError = 21,
 
@@ -34,13 +46,7 @@ enum ErrorCode {
 
 class DiskManager {
     private:
-        struct Deleter {
-            void operator()(FILE* file) const { std::fclose(file); }
-        };
-        
-        using SafeFILE = std::unique_ptr<FILE, Deleter>;
         SafeFILE file;
-
 
         static constexpr unsigned long long pre_header  = 0xDB1D26A4734EB42CLL;
 

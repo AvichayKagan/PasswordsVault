@@ -19,6 +19,18 @@ unsigned char* random(unsigned char *target, size_t len) {
     return target;
 }
 
+char *random_alpha_numeric(char *target, size_t len) {
+    const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    constexpr int alphabet_len = sizeof(alphabet) - 1;
+
+    for (size_t i = 0; i < len; i++) {
+        size_t random_index = randombytes_uniform(alphabet_len);
+        target[i] = alphabet[random_index];
+    }
+    
+    return target;
+}
+
 void SafeVar::encrypto(Key key) {
     unsigned long long dummy;
     randombytes_buf(ptr.get() + size - nonce_len, nonce_len); // generate the nounce

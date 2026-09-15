@@ -142,12 +142,10 @@ class Shell {
             catch (const vault::Error& e) {
                 if (e.code() != vault::InitError) throw;
             }
-
-            std::cout << "\033[?1049h\033[H\033[2J" << std::flush;
         };
 
         ~Shell() { 
-            std::cout << "\033[?1049l" << std::flush;
+            std::cout << "\033[2J\033[3J\033[H" << std::flush;
             if (safeio::set_terminal()) std::cerr << "Warning: failed to restore terminal settings!\n"; 
         }
 

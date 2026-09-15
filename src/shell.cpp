@@ -66,6 +66,7 @@ void Shell::info() {
 
 void Shell::close() { 
     if (vault->is_open()) {
+        std::cout << "\033[2J\033[3J\033[H" << std::flush;
         vault->close_vault();
         std::clog << "Vault closed succesfully. Use 'open' to reopen it." << std::endl;
     }

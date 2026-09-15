@@ -16,21 +16,6 @@ extern "C" {
     int key_press();
 }
 
-class SafeTerminal {
-public:
-    SafeTerminal() {
-        if (set_terminal()) throw config::FatalError("Failed to initiate safe terminal.", config::IO);
-    }
-
-    ~SafeTerminal() {
-        if (set_terminal()) std::cerr << "Warning: failed to restore termianl settings.\n";
-    }
-
-    SafeTerminal(const SafeTerminal&) = delete;
-    SafeTerminal& operator=(const SafeTerminal&) = delete;
-    SafeTerminal(SafeTerminal&&) = delete;
-    SafeTerminal& operator=(SafeTerminal&&) = delete;
-};
 
 class Secret {
 public:

@@ -1,4 +1,5 @@
 #include <vector>
+#include <format>
 #include "parser.hpp"
 #include "shell.hpp"
 
@@ -92,13 +93,12 @@ ShellEncoding parse(crypto::SafeVar &instruction) {
     Tokens tokens(instruction);
     instruction.memzero();
     ShellEncoding encoding = {};
-
     
     Tokens::iterator it = tokens.begin();
 
     // check for empty instruction
     if (it == tokens.end()) {
-        encoding.error = true;
+        encoding.error = std::string(1, '\0');
         return encoding;
     }
     
@@ -106,8 +106,7 @@ ShellEncoding parse(crypto::SafeVar &instruction) {
     // take command
     encoding.command = get_code((char*)it->first.get()); // get the code
     if (encoding.command == -1) {
-        encoding.error = true;
-        std::cerr << "Unrecognized command '" << tokens.begin()->first.get() << "'.\n";
+        encoding.error = std::format("Unrecognized command '{}'.\n", (char *)tokens.begin()->first.get());
         return encoding;
     }
     it++;
@@ -116,8 +115,7 @@ ShellEncoding parse(crypto::SafeVar &instruction) {
     if (it != tokens.end() && it->second && !std::strcmp((char*)it->first.get(), "info")) { // safe to use plain strcmp here?
         encoding.flags = Shell::INFO;
         if (++it != tokens.end()) {
-            encoding.error = true;
-            std::cerr << "No additional tokens allowed post -info flag.\n";
+            encoding.error = "No additional tokens allowed post -info flag.\n";
         }
         return encoding;
     }
@@ -127,16 +125,14 @@ ShellEncoding parse(crypto::SafeVar &instruction) {
         if (it != tokens.end() && !it->second) {
             encoding.arg = crypto::SafeVar(config::max_name_len + 1);
             if (std::strlen((char*)it->first.get()) > config::max_name_len) {
-                encoding.error = true;
-                std::cerr << "Name '" << (char*)it->first.get() << "' is too long, max allowed naem length is " << config::max_name_len << ".\n";
+                encoding.error = std::format("Name '{}' is too long, max allowed name length is {}.\n", (char *)it->first.get(), config::max_name_len);
                 return encoding;
             }
             else std::strcpy((char*)encoding.arg.get(), (char*)it->first.get());
             it++;
         }
         else {
-            encoding.error = true;
-            std::cerr << "Command '" << tokens.begin()->first.get() << "' expects an argument.\n";
+            encoding.error = std::format("Command '{}' expects an argument.\n", (char *)tokens.begin()->first.get());
             return encoding;
         }
     }
@@ -145,8 +141,7 @@ ShellEncoding parse(crypto::SafeVar &instruction) {
         if (it->second) {
             const Shell::Flag *flag = get_flag_code(encoding.command, (char*)it->first.get());
             if (flag == nullptr) {
-                encoding.error = true;
-                std::cerr << "Unrecognized flag '-" << it->first.get() << "' for command '" << tokens.begin()->first.get() << "'.\n";
+                encoding.error = std::format("Unrecognized flag '-{}' for command '{}'.\n", (char *)it->first.get(), (char *)tokens.begin()->first.get());
                 return encoding;
             }
             encoding.flags |= flag->code;
@@ -158,8 +153,7 @@ ShellEncoding parse(crypto::SafeVar &instruction) {
             }
         }
         else {
-            encoding.error = true;
-            std::cerr << "Too many arguments were given for command '" << tokens.begin()->first.get() << "', (only 1 argument is allowed '" << it->first.get() << "' was given later).\n";
+            encoding.error = std::format("Too many arguments were given for command '{}', (only 1 argument is allowed '{}' was given later).\n", (char *)tokens.begin()->first.get(), (char *)it->first.get());
             return encoding;
             it++;
         }

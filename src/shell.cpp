@@ -4,44 +4,41 @@ namespace shell {
     
 
 void Shell::help() {
-    std::cout << "Available commands:\n"
+    cout << "Available commands:\n"
                 << "-------------------\n";
     for (int i = 0; commands[i].name != nullptr; i++) {
         const char *arg =  commands[i].has_arg ? "[name]" : "      ";
         if (!strcmp(commands[i].name, "import")) arg = "[path]"; // ad hoc but works
-        std::cout << "  " << std::left << std::setw(max_command_len + 1) << commands[i].name << arg << " - " << commands[i].desc_short << '\n';
+        cout << "  " << std::left << std::setw(max_command_len + 1) << commands[i].name << arg << " - " << commands[i].desc_short << '\n';
     }
-    std::cout << "\n Use '[command name] -info' for additional information on each command (e.g. flags, specs, security consideration, etc...)" << std::endl;
+    cout << "\n Use '[command name] -info' for additional information on each command (e.g. flags, specs, security consideration, etc...)" << safeio::endl;
 }
 
 
 void Shell::open() { 
     if (vault->is_open()) {
-        std::cout << "The vault is already open, type 'help' to see available commands." << std::endl;
+        cout << "The vault is already open, type 'help' to see available commands." << safeio::endl;
         return;
     }
 
     crypto::SafeVar master_password(config::max_password_len);
-    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
-    if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+    cout << "Please enter the master password to continue with this operation: " << safeio::flush;
+    if (input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
     if (vault->open_vault(std::move(master_password))) {
-        std::cout << "Vault opened succesfully." << std::endl;
+        cout << "Vault opened succesfully." << safeio::endl;
     }
-    else std::cout << "Incorrect Master Password. Please type 'open' in the shell to try again." << std::endl;
+    else cout << "Incorrect Master Password. Please type 'open' in the shell to try again." << safeio::endl;
 }
 
 void Shell::list() {
     if (vault->is_empty()) {
-        std::cout << "Vault is empty." << std::endl;
+        cout << "Vault is empty." << safeio::endl;
         return;
     }
 
-    safeio::SafeStream cout("The vault content has been listed.");
     for (const auto& i : *vault) {
         cout << i.first << safeio::endl;
     }
-    cout << "\nPress any key to delete the list..." << safeio::flush;
-    safeio::key_press();
 }
 
 void Shell::info() {
@@ -50,29 +47,30 @@ void Shell::info() {
     int count = is_open ? vault->get_count() : -1;
     const char *state = is_open ? "OPEN" : "CLOSED";
     
-    std::cout << " ==== Vault Status ====" << "\n\n";
-    std::cout << " Path:   ./vault.bin" << '\n';
-    std::cout << " State: " << state << '\n';
+    cout << " ==== Vault Status ====" << "\n\n";
+    cout << " Path:   ./vault.bin" << '\n';
+    cout << " State: " << state << '\n';
 
     if (is_open) {
         int noise = 100 - (100*count) / ((size - disk::DiskManager::pre_plus_header_size - crypto::SafeVar::encryptoion_buff_len)/(config::max_name_len + config::max_password_len));
 
-        std::cout << '\n';
-        std::cout << " -- Storage Metrics --" << '\n';
-        std::cout << " Passwords Count: " << count << '\n';
-        std::cout << " File Size: " << size << " Bytes\n";
-        std::cout << " Noise Overhead: ~" << noise << "%\n";
+        cout << '\n';
+        cout << " -- Storage Metrics --" << '\n';
+        cout << " Passwords Count: " << count << '\n';
+        cout << " File Size: " << size << " Bytes\n";
+        cout << " Noise Overhead: ~" << noise << "%\n";
     }
 
-    std::cout << "\n ======================" << std::endl;
+    cout << "\n ======================" << safeio::endl;
 }                  
 
 void Shell::close() { 
     if (vault->is_open()) {
         vault->close_vault();
-        std::cout << "Vault closed succesfully. Use 'open' to reopen it." << std::endl;
+        cout.reset();
+        cout << "Vault closed succesfully. Use 'open' to reopen it." << safeio::endl;
     }
-    else std::cout << "The vault is already closed, please type 'open' to open it." << std::endl;
+    else cout << "The vault is already closed, please type 'open' to open it." << safeio::endl;
 }
 
 
@@ -80,12 +78,12 @@ void Shell::add() {
     crypto::SafeVar password(config::max_password_len);
 
     if (vault->contains(encoding.arg)) {
-        std::cout << "'" << encoding.arg.get() << "' already exists in the vault. you can change its password using 'change' or delete it using 'del'." << std::endl;
+        cout << "'" << encoding.arg.get() << "' already exists in the vault. you can change its password using 'change' or delete it using 'del'." << safeio::endl;
         return;
     }
 
     if (encoding.flags & COPY) {
-        std::cout << "copy flag detected!" <<std::endl;
+        cout << "copy flag detected!" <<safeio::endl;
     }
 
     if (encoding.flags & GEN) {
@@ -93,43 +91,43 @@ void Shell::add() {
         else password.random_ascii();
     }
     else {
-        std::cout << "Please enter the password for " << encoding.arg.get() << ": " << std::flush;
-        if (safeio::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
+        cout << "Please enter the password for " << encoding.arg.get() << ": " << safeio::flush;
+        if (input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     }
     
 
-    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    cout << "Please enter the master password to continue with this operation: " << safeio::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
         if (vault->add_password(std::move(encoding.arg), std::move(password), std::move(master_password))) {
-            std::cout << "Password has been added to the vault." << std::endl;
+            cout << "Password has been added to the vault." << safeio::endl;
             break;
         }
-        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+        cout << "Incorrect Master Password. Please try again or press enter to exit: " << safeio::flush;
     }
 }
 
 void Shell::del() {
     if (!vault->contains(encoding.arg)) {
-        std::cout << "Cannot delete '"<< encoding.arg.get() << "' as it doesn't exists in the vault." << std::endl;
+        cout << "Cannot delete '"<< encoding.arg.get() << "' as it doesn't exists in the vault." << safeio::endl;
         return;
     }
 
-    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    cout << "Please enter the master password to continue with this operation: " << safeio::flush;
 
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
         
         if (vault->del_password(encoding.arg, std::move(master_password))) {
-            std::cout << encoding.arg.get() << " has been deleted from the vault." << std::endl;
+            cout << encoding.arg.get() << " has been deleted from the vault." << safeio::endl;
             break;
         }
-        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+        cout << "Incorrect Master Password. Please try again or press enter to exit: " << safeio::flush;
     }
 }
 
@@ -137,18 +135,18 @@ void Shell::show() {
     crypto::SafeVar password = vault->search(encoding.arg);
 
     if (password.get() == nullptr) {
-        std::cout << "No such name '"<< encoding.arg.get() << "' exists in the vault. you can add it using 'add'." << std::endl;
+        cout << "No such name '"<< encoding.arg.get() << "' exists in the vault. you can add it using 'add'." << safeio::endl;
         return;
     }
 
-    safeio::SafeStream cout("A password has been showed.");
+    // safeio::SafeStream cout("A password has been showed.");
     cout << "The password for '" << encoding.arg << "' is: '" << password << "', Press any key to delete this massage, or 'c' to copy the password." << safeio::flush;
     int ch = safeio::key_press();
-    if (ch == 'c') {
+    /*if (ch == 'c') {
 
         // copy
         cout.set_msg("Password has been copied!");
-    }
+    }*/
 }
 
 
@@ -156,25 +154,25 @@ void Shell::chpass() {
     crypto::SafeVar password(config::max_password_len);
 
     if (!vault->contains(encoding.arg)) {
-        std::cout << "No entry '"<< encoding.arg.get() << "' exists in the vault." << std::endl;
+        cout << "No entry '"<< encoding.arg.get() << "' exists in the vault." << safeio::endl;
         return;
     }
 
-    std::cout << "Please enter the new password for " << encoding.arg.get() << ": " << std::flush;
-    if (safeio::input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
+    cout << "Please enter the new password for " << encoding.arg.get() << ": " << safeio::flush;
+    if (input(password.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     
 
-    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    cout << "Please enter the master password to continue with this operation: " << safeio::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
         if (vault->add_password(std::move(encoding.arg), std::move(password), std::move(master_password))) {
-            std::cout << "Password has been change successfully." << std::endl;
+            cout << "Password has been change successfully." << safeio::endl;
             break;
         }
-        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+        cout << "Incorrect Master Password. Please try again or press enter to exit: " << safeio::flush;
     }
 }
 
@@ -183,31 +181,31 @@ void Shell::rename() {
     crypto::SafeVar new_name(config::max_name_len);
 
     if (!vault->contains(encoding.arg)) {
-        std::cout << "No entry '"<< encoding.arg.get() << "' exists in the vault." << std::endl;
+        cout << "No entry '"<< encoding.arg.get() << "' exists in the vault." << safeio::endl;
         return;
     }
 
-    std::cout << "Please enter the new name for " << encoding.arg.get() << ": " << std::flush;
+    cout << "Please enter the new name for " << encoding.arg.get() << ": " << safeio::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeio::input(new_name.get(), config::max_name_len, false)) throw Error("Failed to take password from the user.");
+        if (input(new_name.get(), config::max_name_len, false)) throw Error("Failed to take password from the user.");
         if (*new_name.get() == '\0') return;
 
         if (!vault->contains(new_name)) break;
-        std::cout << "The new name already exists in the vault! Please choose a different name or press enter to exit: " << std::flush;
+        cout << "The new name already exists in the vault! Please choose a different name or press enter to exit: " << safeio::flush;
     }
 
-    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    cout << "Please enter the master password to continue with this operation: " << safeio::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
         if (vault->change_name(std::move(encoding.arg), new_name, std::move(master_password))) {
-            std::cout << "Name has been change successfully." << std::endl;
+            cout << "Name has been change successfully." << safeio::endl;
             break;
         }
-        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+        cout << "Incorrect Master Password. Please try again or press enter to exit: " << safeio::flush;
     }
 }
 
@@ -215,20 +213,20 @@ void Shell::rename() {
 void Shell::chmaster() {
     crypto::SafeVar new_master(config::max_password_len);
 
-    std::cout << "Please enter a new master password for the vault: " << std::flush;
-    if (safeio::input(new_master.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
+    cout << "Please enter a new master password for the vault: " << safeio::flush;
+    if (input(new_master.get(), config::max_password_len, true)) throw Error("Failed to take password from the user.");
     
-    std::cout << "Please enter the old master password to continue with this operation: " << std::flush;
+    cout << "Please enter the old master password to continue with this operation: " << safeio::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
         if (vault->change_master(std::move(new_master), std::move(master_password))) {
-            std::cout << "Master password has been change successfully." << std::endl;
+            cout << "Master password has been change successfully." << safeio::endl;
             break;
         }
-        std::cout << "Incorrect Old Master Password. Please try again or press enter to exit: " << std::flush;
+        cout << "Incorrect Old Master Password. Please try again or press enter to exit: " << safeio::flush;
     }
 }
 
@@ -238,126 +236,129 @@ void Shell::import() { // need to implmet the del flag
     bool clear = encoding.flags & CLEAR;
 
     if (clear) {
-        std::cout << "This operation will clear out all existing passwords in the vault (" << vault->get_count() << " passwords). are you sure you want to continue? (y/n)" << std::endl;;
+        cout << "This operation will clear out all existing passwords in the vault (" << vault->get_count() << " passwords). are you sure you want to continue? (y/n)" << safeio::endl;;
         int ch = safeio::key_press(); // will not wait for enter!
         if (ch != 'y' && ch != 'Y') return;
     }
 
-    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    cout << "Please enter the master password to continue with this operation: " << safeio::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') return;
 
         auto [inserted, changed] = vault->import_passwords(encoding.arg, std::move(master_password), overwrite, clear);
         if (inserted != -1) {
-            if (clear) std::cout << "The vault has been cleared and ";
-            std::cout << inserted + (overwrite ? changed : 0) << " passwords has been imported to the vault.\n";
+            if (clear) cout << "The vault has been cleared and ";
+            cout << inserted + (overwrite ? changed : 0) << " passwords has been imported to the vault.\n";
             if (!clear) {
-                std::cout << " -> " << inserted << " new passwords.\n";
+                cout << " -> " << inserted << " new passwords.\n";
                 if (overwrite) {
-                    std::cout << " -> " << changed << " changed passwords." << std::endl;
+                    cout << " -> " << changed << " changed passwords." << safeio::endl;
                 }
-                else std::cout << " -> " << changed << " entries already existed in the vault, remain unchanged.";
+                else cout << " -> " << changed << " entries already existed in the vault, remain unchanged.";
             }
-            std::cout << '\n' << std::endl;
+            cout << '\n' << safeio::endl;
             break;
         }
-        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+        cout << "Incorrect Master Password. Please try again or press enter to exit: " << safeio::flush;
     }
 
     if (!(encoding.flags & DEL)) {
-        std::cout << "It is highly recommended to securly delete the import file after importing. do you want to delete it (if import succeeded)? (y/n)" << std::endl;
+        cout << "It is highly recommended to securly delete the import file after importing. do you want to delete it (if import succeeded)? (y/n)" << safeio::endl;
         int ch = safeio::key_press(); // will not wait for enter!
         if (ch != 'y' && ch != 'Y') {
-            std::cout << "Warning: import file '" << encoding.arg.get() <<  "' has not been deleted." << std::endl;
+            cout << "Warning: import file '" << encoding.arg.get() <<  "' has not been deleted." << safeio::endl;
             return;
         }
     }
 
     try {
         vault::secure_delete(encoding.arg);
-        std::cout << "Import file '" << encoding.arg.get() <<  "' has been deleted." << std::endl;
+        cout << "Import file '" << encoding.arg.get() <<  "' has been deleted." << safeio::endl;
     }
     catch (const config::GeneralError& e) {
-        std::cerr << "Warning: secure deletion of the import file '" << encoding.arg.get() <<  "' has failed, " << e.what() << " (MODULE: " << e.module() << ", CODE: "<< e.code() << ")" << '\n';
+        cerr << "Warning: secure deletion of the import file '" << encoding.arg.get() <<  "' has failed, " << e.what() << " (MODULE: " << e.module() << ", CODE: "<< e.code() << ")" << '\n';
     }
     catch (const std::exception& e) {
-        std::cerr << "Warning: secure deletion of the import file '" << encoding.arg.get() <<  "' has failed, " << e.what() << '\n';
+        cerr << "Warning: secure deletion of the import file '" << encoding.arg.get() <<  "' has failed, " << e.what() << '\n';
     }
     catch (...) {
-        std::cerr << "Warning: secure deletion of the import file '" << encoding.arg.get() <<  "' has failed.\n";
+        cerr << "Warning: secure deletion of the import file '" << encoding.arg.get() <<  "' has failed.\n";
     }
 }
 
 
 void Shell::clear() {
     char ch;
-    std::cout << "This operation will clear out all existing passwords in the vault (" << vault->get_count() << " passwords). are you sure you want to continue? (y/n)";
+    cout << "This operation will clear out all existing passwords in the vault (" << vault->get_count() << " passwords). are you sure you want to continue? (y/n)";
     std::cin >> ch; // flush here the stdin!
     if (ch != 'y' && ch != 'Y') return; // BUG: immidetly go without pressing enter
 
-    std::cout << "Please enter the master password to continue with this operation: " << std::flush;
+    cout << "Please enter the master password to continue with this operation: " << safeio::flush;
     while (true) {
         crypto::SafeVar master_password(config::max_password_len);
-        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
+        if (input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the master password from the user.");
         if (*master_password.get() == '\0') break;
 
         if (vault->clear(std::move(master_password))) {
-            std::cout << "All vault entries have been cleared." << std::endl;
+            cout << "All vault entries have been cleared." << safeio::endl;
             break;
         }
-        std::cout << "Incorrect Master Password. Please try again or press enter to exit: " << std::flush;
+        cout << "Incorrect Master Password. Please try again or press enter to exit: " << safeio::flush;
     }
 }
 
 
 void Shell::run() {
-    crypto::SafeVar input(max_input_len);
+    crypto::SafeVar instruction(max_input_len);
 
     if (vault == nullptr) {
         crypto::SafeVar master_password(config::max_password_len);
-        std::cout << "Please choose and enter a master password for the new vault: " << std::flush;
-        if (safeio::input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.");
+        cout << "Please choose and enter a master password for the new vault: " << safeio::flush;
+        if (input(master_password.get(), config::max_password_len, true)) throw Error("Failed to take the vault password from the user.");
         vault = std::make_unique<vault::Vault>(std::move(master_password));
     }
     
     if (!vault->is_open()) {
-        std::cout << "Auto-Opening the vault..." << std::endl;
+        cout << "Auto-Opening the vault..." << safeio::endl;
         open(); // could be pre opend in the case of init vault
     }
 
-    std::cout << "Shell is running, please enter commands to use the vault..." << std::endl;
+    cout << "Shell is running, please enter commands to use the vault..." << safeio::endl;
 
     while (vault != nullptr) {
-        std::cout << std::endl;
-        if (safeio::input(input.get(), max_input_len, false)) throw Error("Failed to read command from the user.");
+        cout << safeio::endl;
+        if (input(instruction.get(), max_input_len, false)) throw Error("Failed to read command from the user.");
 
-        encoding = parse(input);
-        if (encoding.error) continue;
+        encoding = parse(instruction);
+        if (!encoding.error.empty()) {
+            cerr << encoding.error;
+            continue;
+        }
 
         if (encoding.flags & INFO) {
-            std::cout << commands[encoding.command].desc_long << std::endl;
+            cout << commands[encoding.command].desc_long << safeio::endl;
             continue;
         }
 
         if (!vault->is_open() && !commands[encoding.command].allow_close) {
-            std::cout << "Cannot complete the operation, the vault is closed, please type 'open' to open it." << std::endl;
+            cout << "Cannot complete the operation, the vault is closed, please type 'open' to open it." << safeio::endl;
             continue;
         }
 
         try {
-            std::cout << std::endl;
+            cout << safeio::endl;
             (this->*commands[encoding.command].method)(); // execute the command
         } 
         catch (const config::FatalError& e) {
             throw;
         }
         catch (const config::GeneralError& e) {
-            std::cerr << "Error: Could not complete opertation: " << e.what() << " (MODULE: " << e.module() << ", CODE: "<< e.code() << ")" << '\n';
+            cerr << "Error: Could not complete opertation: " << e.what() << " (MODULE: " << e.module() << ", CODE: "<< e.code() << ")" << '\n';
         }
         catch (const std::exception& e) {
-            std::cerr << "Error: Could not complete opertation: " << e.what() << '\n';
+            cerr << "Error: Could not complete opertation: " << e.what() << '\n';
         }
     }
 }

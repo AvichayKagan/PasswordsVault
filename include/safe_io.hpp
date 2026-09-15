@@ -9,29 +9,12 @@ extern "C" {
 
     int set_terminal();
 
-    int input(unsigned char *buffer, size_t max_len, int hide_char);
+    int input_c(unsigned char *buffer, size_t max_len, int hide_char);
 
-    int safe_write(const char *message);
+    int safe_write(const char *message, int error);
 
     int key_press();
 }
-
-class SafeTerminal {
-public:
-    SafeTerminal() {
-        if (set_terminal()) throw config::FatalError("Failed to initiate safe terminal.", config::IO);
-    }
-
-    ~SafeTerminal() {
-        if (set_terminal()) std::cerr << "Warning: failed to restore termianl settings.\n";
-    }
-
-    SafeTerminal(const SafeTerminal&) = delete;
-    SafeTerminal& operator=(const SafeTerminal&) = delete;
-    SafeTerminal(SafeTerminal&&) = delete;
-    SafeTerminal& operator=(SafeTerminal&&) = delete;
-};
-
 
 class Endl {};
 class Flush {};
@@ -40,31 +23,27 @@ inline Flush flush;
 
 class SafeStream {
     private:
-        size_t line_count = 0;
-        const char *msg = nullptr;
+        static inline size_t line_count;
+        std::ostream &stream;
 
     public:
-        SafeStream() = default;
-        explicit SafeStream(const char *_msg) :msg(_msg) {}
-
-        ~SafeStream() {
-            // delete the printed data
-            if (line_count > 0) std::cout << "\033[" << line_count << "A";
-            std::cout << "\r\033[J";
-
-            // print the message and flush
-            if (msg != nullptr) {
-                std::cout << msg << std::endl;
-            }
-            else std::cout << std::flush;
-        }
-
+        SafeStream(std::ostream &stream_) : stream(stream_) {};
+        ~SafeStream() { reset(); }
         SafeStream(const SafeStream&) = delete;
         SafeStream& operator=(const SafeStream&) = delete;
         SafeStream(SafeStream&&) = delete;
         SafeStream& operator=(SafeStream&&) = delete;
 
-        void set_msg(const char *_msg) { msg = _msg; }
+        void reset() {
+            // delete the printed data
+            if (line_count > 0) {
+                std::cerr << std::flush;
+                std::cout << std::flush << "\033[" << line_count << "A";
+                std::cout << "\r\033[J" << std::flush;
+            }
+
+            line_count = 0;
+        }
         
         // catch C-strings
         SafeStream& operator<<(const char *str) {
@@ -72,7 +51,7 @@ class SafeStream {
                 for (int i = 0; str[i] != '\0'; i++) {
                     if (str[i] == '\n') line_count++;
                 }
-                std::cout << str;
+                stream << str;
             }
 
             return *this;
@@ -83,7 +62,7 @@ class SafeStream {
             for (char c : str) {
                 if (c == '\n') line_count++;
             }
-            std::cout << str;
+            stream << str;
 
             return *this;
         }
@@ -91,13 +70,13 @@ class SafeStream {
         // catch single char
         SafeStream& operator<<(char ch) {
             if (ch == '\n') line_count++;
-            std::cout << ch;
+            stream << ch;
             return *this;
         }
 
         template <typename T>
         SafeStream& operator<<(const T& str) {
-            std::cout << str;
+            stream << str;
             return *this;
         }
 
@@ -108,19 +87,19 @@ class SafeStream {
                 for (int i = 0; str[i] != '\0'; i++) {
                     if (str[i] == '\n') line_count++;
                 }
-                std::cout << std::flush;
-                safe_write(str);
+                stream << std::flush;
+                safe_write(str, &stream == &std::cout ? 0 : 1 );
             }
             return *this;
         }
 
         SafeStream& operator<<(const Flush&) {
-            std::cout << std::flush;
+            stream << std::flush;
             return *this;
         }
 
         SafeStream& operator<<(const Endl&) {
-            std::cout << std::endl;
+            stream << std::endl;
             line_count++;
             return *this;
         }

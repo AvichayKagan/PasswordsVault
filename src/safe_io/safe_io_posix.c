@@ -43,7 +43,7 @@ int set_terminal() {
     return 0;
 }
 
-int input(unsigned char *buffer, size_t max_len, int hide_char) {
+int input_c(unsigned char *buffer, size_t max_len, int hide_char) {
     size_t idx = 0;
     char *ch;
     int status;
@@ -85,13 +85,14 @@ int input(unsigned char *buffer, size_t max_len, int hide_char) {
 
     buffer[idx] = '\0'; // Null-terminate the string
 
-    write(STDOUT_FILENO, "\n", 1);
+    // write(STDOUT_FILENO, "\n", 1);
 
     return ret(error, ch);
 }
 
-void safe_write(const char *message) {
-    write(STDOUT_FILENO, message, strlen(message));
+void safe_write(const char *message, int error) {
+    int stream = error ? STDERR_FILENO : STDOUT_FILENO;
+    write(stream, message, strlen(message));
 }
 
 int key_press() {

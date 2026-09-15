@@ -276,7 +276,7 @@ void DiskManager::atomic_write_file(crypto::SafeVar &master_key_enc, crypto::Sal
         if (!renamed && !retry([&]() {
             std::filesystem::remove(config::vault_path_temp, ec);
             return !ec;
-        })) std::cerr << "WARNING: Failed to clean up temp file: " << config::vault_path_temp << ": " << ec.message() << "\n";
+        })) std::cerr << "WARNING: Failed to clean up temp file: " << config::vault_path_temp << ": " << ec.message() << "\n"; // problem. only shell namespapce and main allowed to print
 
         // re-open the file
         if (file == nullptr && !retry([&]() {

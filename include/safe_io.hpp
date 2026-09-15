@@ -23,11 +23,12 @@ inline Flush flush;
 
 class SafeStream {
     private:
-        static inline size_t line_count;
+        std::shared_ptr<size_t> line_count;
         std::ostream &stream;
 
     public:
-        SafeStream(std::ostream &stream_) : stream(stream_) {};
+        SafeStream() : line_count(std::make_shared<size_t>(0)), stream(std::cout) {};
+        SafeStream(std::ostream &stream_, SafeStream &link) : line_count(link.line_count), stream(stream_) {};
         ~SafeStream() { reset(); }
         SafeStream(const SafeStream&) = delete;
         SafeStream& operator=(const SafeStream&) = delete;
@@ -36,20 +37,20 @@ class SafeStream {
 
         void reset() {
             // delete the printed data
-            if (line_count > 0) {
+            if (*line_count > 0) {
                 std::cerr << std::flush;
-                std::cout << std::flush << "\033[" << line_count << "A";
+                std::cout << std::flush << "\033[" << *line_count << "A";
                 std::cout << "\r\033[J" << std::flush;
             }
 
-            line_count = 0;
+            *line_count = 0;
         }
         
         // catch C-strings
         SafeStream& operator<<(const char *str) {
             if (str != nullptr) {
                 for (int i = 0; str[i] != '\0'; i++) {
-                    if (str[i] == '\n') line_count++;
+                    if (str[i] == '\n') (*line_count)++;
                 }
                 stream << str;
             }
@@ -60,7 +61,7 @@ class SafeStream {
         // catch std::string
         SafeStream& operator<<(const std::string& str) {
             for (char c : str) {
-                if (c == '\n') line_count++;
+                if (c == '\n') (*line_count)++;
             }
             stream << str;
 
@@ -69,7 +70,7 @@ class SafeStream {
 
         // catch single char
         SafeStream& operator<<(char ch) {
-            if (ch == '\n') line_count++;
+            if (ch == '\n') (*line_count)++;
             stream << ch;
             return *this;
         }
@@ -85,7 +86,7 @@ class SafeStream {
             const char *str = (char *)secret.get();
             if (str != nullptr) {
                 for (int i = 0; str[i] != '\0'; i++) {
-                    if (str[i] == '\n') line_count++;
+                    if (str[i] == '\n') (*line_count)++;
                 }
                 stream << std::flush;
                 safe_write(str, &stream == &std::cout ? 0 : 1 );
@@ -100,7 +101,7 @@ class SafeStream {
 
         SafeStream& operator<<(const Endl&) {
             stream << std::endl;
-            line_count++;
+            (*line_count)++;
             return *this;
         }
 };

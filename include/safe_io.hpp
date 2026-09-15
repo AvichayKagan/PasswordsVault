@@ -9,7 +9,7 @@ extern "C" {
 
     int set_terminal();
 
-    int input_c(unsigned char *buffer, size_t max_len, int hide_char);
+    int input(unsigned char *buffer, size_t max_len, int hide_char);
 
     int safe_write(const char *message, int error);
 

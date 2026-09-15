@@ -43,7 +43,7 @@ int set_terminal() {
     return 0;
 }
 
-int input_c(unsigned char *buffer, size_t max_len, int hide_char) {
+int input(unsigned char *buffer, size_t max_len, int hide_char) {
     size_t idx = 0;
     char *ch;
     int status;
@@ -85,7 +85,7 @@ int input_c(unsigned char *buffer, size_t max_len, int hide_char) {
 
     buffer[idx] = '\0'; // Null-terminate the string
 
-    // write(STDOUT_FILENO, "\n", 1);
+    write(STDOUT_FILENO, "\n", 1);
 
     return ret(error, ch);
 }

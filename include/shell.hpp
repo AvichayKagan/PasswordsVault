@@ -14,17 +14,9 @@ class Error : public config::GeneralError {
 
 class Shell {
     private:
-        safeio::SafeStream cout;
-        safeio::SafeStream clog;
         std::unique_ptr<vault::Vault> vault;
         ShellEncoding encoding;
 
-
-        int input(unsigned char *buffer, size_t max_len, int hide_char) {
-            int ret = safeio::input_c(buffer, max_len, hide_char);
-            cout << safeio::endl;
-            return ret;
-        }
 
         // vault user operations
         // sudo
@@ -140,7 +132,7 @@ class Shell {
         
         static constexpr size_t max_input_len = 5*max_command_len + config::max_name_len; // temp (the 5 specifically)
 
-        Shell() : clog(std::clog, cout) {
+        Shell(){
             if (!safeio::is_interactive_terminal()) throw config::FatalError("The vault can only be run in an interactive terminal.", config::IO);
             if (safeio::set_terminal()) throw config::FatalError("Failed to initiate safe terminal.", config::IO);
 
@@ -150,10 +142,12 @@ class Shell {
             catch (const vault::Error& e) {
                 if (e.code() != vault::InitError) throw;
             }
+
+            std::cout << "\033[?1049h\033[H\033[2J" << std::flush;
         };
 
         ~Shell() { 
-            cout.reset();
+            std::cout << "\033[?1049l" << std::flush;
             if (safeio::set_terminal()) std::cerr << "Warning: failed to restore terminal settings!\n"; 
         }
 
